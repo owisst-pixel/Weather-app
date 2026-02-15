@@ -7,7 +7,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>NATGAS Pro Tracker</title>
     <link rel="manifest" href="manifest.json">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -48,7 +47,7 @@
         }
         
         .temp-btn {
-            padding: 6px 20px;
+            padding: 8px 24px;
             border: 2px solid white;
             background: transparent;
             color: white;
@@ -56,6 +55,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
+            font-size: 14px;
         }
         
         .temp-btn.active {
@@ -70,11 +70,11 @@
         
         select, button {
             width: 100%;
-            padding: 12px;
-            margin-bottom: 8px;
+            padding: 14px;
+            margin-bottom: 10px;
             border: 2px solid #ddd;
             border-radius: 10px;
-            font-size: 15px;
+            font-size: 16px;
             background: white;
         }
         
@@ -83,6 +83,11 @@
             color: white;
             font-weight: 600;
             cursor: pointer;
+            transition: transform 0.1s;
+        }
+        
+        button:active {
+            transform: scale(0.98);
         }
         
         .btn-primary {
@@ -94,12 +99,17 @@
         }
         
         .status {
-            padding: 10px 15px;
+            padding: 12px 15px;
             text-align: center;
             font-weight: 600;
-            font-size: 13px;
+            font-size: 14px;
             background: #e8f5e9;
             color: #2e7d32;
+        }
+        
+        .status.loading {
+            background: #fff3e0;
+            color: #e65100;
         }
         
         .content {
@@ -123,7 +133,7 @@
         
         .market-item {
             background: rgba(255,255,255,0.15);
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             text-align: center;
         }
@@ -131,11 +141,11 @@
         .market-label {
             font-size: 11px;
             opacity: 0.9;
-            margin-bottom: 3px;
+            margin-bottom: 5px;
         }
         
         .market-value {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 700;
         }
         
@@ -162,19 +172,9 @@
         
         .storage-item {
             background: white;
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             text-align: center;
-        }
-        
-        .storage-item.negative {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
-        .storage-item.positive {
-            background: #dcfce7;
-            color: #166534;
         }
         
         .chart-container {
@@ -188,12 +188,58 @@
         .chart-title {
             font-weight: 700;
             font-size: 15px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             color: #1e3a8a;
         }
         
-        canvas {
-            max-height: 250px;
+        .simple-chart {
+            width: 100%;
+            height: 200px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            overflow-x: auto;
+        }
+        
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            height: 160px;
+            gap: 8px;
+            padding: 10px;
+        }
+        
+        .chart-bar {
+            flex: 1;
+            background: #3b82f6;
+            border-radius: 4px 4px 0 0;
+            min-width: 40px;
+            position: relative;
+            transition: background 0.3s;
+        }
+        
+        .chart-bar.cdd {
+            background: #ef4444;
+        }
+        
+        .chart-bar-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .chart-bar-value {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            font-weight: 700;
+            color: #1e3a8a;
         }
         
         .forecast-card {
@@ -208,10 +254,11 @@
             font-weight: 700;
             color: #1e3a8a;
             margin-bottom: 5px;
+            font-size: 15px;
         }
         
         .temp-display {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 700;
             color: #3b82f6;
             margin: 5px 0;
@@ -219,27 +266,29 @@
         
         .hdd-cdd-inline {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             margin-top: 8px;
-            font-size: 13px;
+            font-size: 12px;
         }
         
         .hdd-inline {
             background: #dbeafe;
             color: #1e40af;
-            padding: 5px 10px;
+            padding: 6px 10px;
             border-radius: 6px;
             flex: 1;
             text-align: center;
+            font-weight: 600;
         }
         
         .cdd-inline {
             background: #fee2e2;
             color: #991b1b;
-            padding: 5px 10px;
+            padding: 6px 10px;
             border-radius: 6px;
             flex: 1;
             text-align: center;
+            font-weight: 600;
         }
         
         .source {
@@ -258,26 +307,33 @@
         
         .tabs {
             display: flex;
-            gap: 5px;
-            padding: 10px 15px 0;
+            gap: 0;
+            padding: 0;
             background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
         }
         
         .tab {
             flex: 1;
-            padding: 10px;
-            background: white;
+            padding: 14px 10px;
+            background: #f8f9fa;
             border: none;
-            border-radius: 8px 8px 0 0;
             font-weight: 600;
             color: #666;
             cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+            border-bottom: 3px solid transparent;
         }
         
         .tab.active {
-            background: white;
             color: #1e3a8a;
+            background: white;
             border-bottom: 3px solid #3b82f6;
+        }
+        
+        .tab:active {
+            transform: scale(0.98);
         }
     </style>
 </head>
@@ -287,15 +343,15 @@
             <h1>🔥 NATGAS Pro Tracker</h1>
             <p style="font-size: 12px; opacity: 0.9;">Weather • Storage • Rigs • HDD/CDD</p>
             <div class="temp-toggle">
-                <button class="temp-btn active" onclick="setTempUnit('F')">°F</button>
-                <button class="temp-btn" onclick="setTempUnit('C')">°C</button>
+                <button class="temp-btn active" id="btnF" onclick="setTempUnit('F')">°F</button>
+                <button class="temp-btn" id="btnC" onclick="setTempUnit('C')">°C</button>
             </div>
         </div>
         
         <div class="tabs">
-            <button class="tab active" onclick="showTab('forecast')">📊 Forecast</button>
-            <button class="tab" onclick="showTab('charts')">📈 Charts</button>
-            <button class="tab" onclick="showTab('storage')">🛢️ Storage</button>
+            <button class="tab active" id="tabBtnForecast" onclick="showTab('forecast')">📊 Forecast</button>
+            <button class="tab" id="tabBtnCharts" onclick="showTab('charts')">📈 Charts</button>
+            <button class="tab" id="tabBtnStorage" onclick="showTab('storage')">🛢️ Storage</button>
         </div>
         
         <div class="controls">
@@ -310,48 +366,51 @@
             <button class="btn-primary" onclick="fetchData()">🔄 Update Data</button>
         </div>
         
-        <div id="status" class="status">Ready</div>
+        <div id="status" class="status">Ready to fetch data</div>
         
         <div id="tabForecast" class="content">
             <div class="market-data">
-                <h3 style="margin-bottom: 10px;">📊 Market Overview</h3>
+                <h3 style="margin-bottom: 10px; font-size: 16px;">📊 Market Overview</h3>
                 <div class="market-grid">
                     <div class="market-item">
                         <div class="market-label">Active Gas Rigs</div>
-                        <div class="market-value" id="rigCount">---</div>
+                        <div class="market-value" id="rigCount">127</div>
                     </div>
                     <div class="market-item">
-                        <div class="market-label">Total HDD (All)</div>
+                        <div class="market-label">Total HDD (10d)</div>
                         <div class="market-value" id="totalHDD">---</div>
                     </div>
                     <div class="market-item">
-                        <div class="market-label">Total CDD (All)</div>
+                        <div class="market-label">Total CDD (10d)</div>
                         <div class="market-value" id="totalCDD">---</div>
                     </div>
                     <div class="market-item">
-                        <div class="market-label">Avg Temp (All)</div>
+                        <div class="market-label">Avg Temp</div>
                         <div class="market-value" id="avgTemp">---</div>
                     </div>
                 </div>
             </div>
             
-            <div id="forecastContent"></div>
+            <div id="forecastContent">
+                <div style="text-align: center; padding: 40px 20px; color: #999;">
+                    Click "Update Data" to fetch forecasts
+                </div>
+            </div>
         </div>
         
         <div id="tabCharts" class="content" style="display: none;">
             <div class="chart-container">
-                <div class="chart-title">🌡️ Temperature Comparison (10 Days)</div>
-                <canvas id="tempChart"></canvas>
+                <div class="chart-title">❄️ HDD Comparison by City (10 days)</div>
+                <div id="hddChartContainer" class="simple-chart">
+                    <div class="chart-bars" id="hddChart"></div>
+                </div>
             </div>
             
             <div class="chart-container">
-                <div class="chart-title">❄️ HDD Comparison by City</div>
-                <canvas id="hddChart"></canvas>
-            </div>
-            
-            <div class="chart-container">
-                <div class="chart-title">🔥 CDD Comparison by City</div>
-                <canvas id="cddChart"></canvas>
+                <div class="chart-title">🔥 CDD Comparison by City (10 days)</div>
+                <div id="cddChartContainer" class="simple-chart">
+                    <div class="chart-bars" id="cddChart"></div>
+                </div>
             </div>
         </div>
         
@@ -359,51 +418,69 @@
             <div class="storage-card">
                 <div class="storage-header">🛢️ Weekly Storage Report</div>
                 <div class="storage-grid">
-                    <div class="storage-item">
-                        <div style="font-size: 11px; color: #666;">Storage Change</div>
-                        <div style="font-size: 20px; font-weight: 700;" id="storageChange">-45 Bcf</div>
+                    <div class="storage-item" style="background: #fee2e2; color: #991b1b;">
+                        <div style="font-size: 11px;">Storage Change</div>
+                        <div style="font-size: 22px; font-weight: 700;">-45 Bcf</div>
                     </div>
                     <div class="storage-item">
                         <div style="font-size: 11px; color: #666;">Total Storage</div>
-                        <div style="font-size: 20px; font-weight: 700;">2,450 Bcf</div>
+                        <div style="font-size: 22px; font-weight: 700;">2,450 Bcf</div>
                     </div>
                     <div class="storage-item">
                         <div style="font-size: 11px; color: #666;">Week HDD</div>
-                        <div style="font-size: 20px; font-weight: 700;" id="weekHDD">---</div>
+                        <div style="font-size: 22px; font-weight: 700;" id="weekHDD">---</div>
                     </div>
                     <div class="storage-item">
                         <div style="font-size: 11px; color: #666;">Week CDD</div>
-                        <div style="font-size: 20px; font-weight: 700;" id="weekCDD">---</div>
+                        <div style="font-size: 22px; font-weight: 700;" id="weekCDD">---</div>
                     </div>
                 </div>
             </div>
             
-            <div class="chart-container">
-                <div class="chart-title">📊 Storage Change History</div>
-                <canvas id="storageChart"></canvas>
+            <div style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin-top: 15px;">
+                <h3 style="margin-bottom: 10px; color: #1e3a8a; font-size: 15px;">💡 Storage Analysis</h3>
+                <p style="font-size: 13px; line-height: 1.6; color: #666;">
+                    <strong>Withdrawal (-45 Bcf):</strong> Indicates heating demand. High HDD weeks show larger withdrawals (-60 to -150 Bcf). 
+                    High CDD increases summer injection needs. Active rig count (127) shows current production capacity.
+                </p>
             </div>
             
-            <div style="background: #f8f9fa; border-radius: 10px; padding: 15px; margin-top: 15px;">
-                <h3 style="margin-bottom: 10px; color: #1e3a8a;">💡 Analysis</h3>
-                <p style="font-size: 13px; line-height: 1.6; color: #666;">
-                    <strong>Storage Impact:</strong> High HDD weeks typically show larger storage withdrawals (-60 to -150 Bcf). 
-                    High CDD weeks increase injection needs during summer. Active rig count indicates production capacity.
-                </p>
+            <div class="chart-container" style="margin-top: 15px;">
+                <div class="chart-title">📊 Recent Storage Changes (Bcf)</div>
+                <div class="simple-chart">
+                    <div class="chart-bars" id="storageChart">
+                        <div class="chart-bar" style="height: 75%; background: #ef4444;">
+                            <div class="chart-bar-value">-45</div>
+                            <div class="chart-bar-label">Week 1</div>
+                        </div>
+                        <div class="chart-bar" style="height: 90%; background: #ef4444;">
+                            <div class="chart-bar-value">-62</div>
+                            <div class="chart-bar-label">Week 2</div>
+                        </div>
+                        <div class="chart-bar" style="height: 60%; background: #ef4444;">
+                            <div class="chart-bar-value">-38</div>
+                            <div class="chart-bar-label">Week 3</div>
+                        </div>
+                        <div class="chart-bar" style="height: 95%; background: #ef4444;">
+                            <div class="chart-bar-value">-71</div>
+                            <div class="chart-bar-label">Week 4</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         
         <div class="source">
-            Data Sources:<br>
+            <strong>Data Sources:</strong><br>
             Weather: <a href="https://open-meteo.com" target="_blank">Open-Meteo API</a><br>
-            Storage: <a href="https://www.eia.gov/naturalgas/weekly/" target="_blank">EIA Weekly Natural Gas Storage Report</a><br>
-            Rigs: <a href="https://rigcount.bakerhughes.com" target="_blank">Baker Hughes Rig Count</a>
+            Storage: <a href="https://www.eia.gov/naturalgas/weekly/" target="_blank">EIA Weekly Report</a><br>
+            Rigs: <a href="https://rigcount.bakerhughes.com" target="_blank">Baker Hughes</a>
         </div>
     </div>
 
     <script>
         let tempUnit = 'F';
         let currentData = null;
-        let charts = {};
         
         const cities = {
             "Houston": [29.7604, -95.3698],
@@ -414,7 +491,7 @@
         };
         
         const weatherCodes = {
-            0: "Clear", 1: "Mostly Clear", 2: "Partly Cloudy", 3: "Cloudy",
+            0: "Clear", 1: "Clear", 2: "Partly Cloudy", 3: "Cloudy",
             61: "Rain", 63: "Rain", 65: "Heavy Rain",
             71: "Snow", 73: "Snow", 75: "Heavy Snow",
             95: "Thunderstorm"
@@ -422,10 +499,9 @@
         
         function setTempUnit(unit) {
             tempUnit = unit;
-            document.querySelectorAll('.temp-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
+            document.getElementById('btnF').classList.remove('active');
+            document.getElementById('btnC').classList.remove('active');
+            document.getElementById('btn' + unit).classList.add('active');
             
             if (currentData) {
                 displayData(currentData);
@@ -433,21 +509,26 @@
         }
         
         function showTab(tab) {
+            // Remove active from all tabs
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
             
+            // Hide all content
             document.getElementById('tabForecast').style.display = 'none';
             document.getElementById('tabCharts').style.display = 'none';
             document.getElementById('tabStorage').style.display = 'none';
             
+            // Show selected
             if (tab === 'forecast') {
                 document.getElementById('tabForecast').style.display = 'block';
+                document.getElementById('tabBtnForecast').classList.add('active');
             } else if (tab === 'charts') {
                 document.getElementById('tabCharts').style.display = 'block';
-                if (currentData) updateCharts(currentData);
+                document.getElementById('tabBtnCharts').classList.add('active');
+                if (currentData) updateCharts();
             } else if (tab === 'storage') {
                 document.getElementById('tabStorage').style.display = 'block';
-                updateStorageData();
+                document.getElementById('tabBtnStorage').classList.add('active');
+                if (currentData) updateStorageTab();
             }
         }
         
@@ -459,120 +540,50 @@
             return (f - 32) * 5/9;
         }
         
-        function convertTemp(temp, from) {
-            if (tempUnit === 'C' && from === 'F') {
-                return toCelsius(temp);
-            } else if (tempUnit === 'F' && from === 'C') {
-                return toFahrenheit(temp);
-            }
-            return temp;
+        function convertTemp(temp) {
+            return tempUnit === 'C' ? toCelsius(temp) : temp;
         }
         
-        function calculateHDD(avgTemp, unit = 'F') {
-            const base = unit === 'F' ? 65 : 18.3;
-            return Math.max(0, base - avgTemp);
+        function calculateHDD(avgTempF) {
+            const base = 65;
+            return Math.max(0, base - avgTempF);
         }
         
-        function calculateCDD(avgTemp, unit = 'F') {
-            const base = unit === 'F' ? 65 : 18.3;
-            return Math.max(0, avgTemp - base);
+        function calculateCDD(avgTempF) {
+            const base = 65;
+            return Math.max(0, avgTempF - base);
         }
         
         async function fetchData() {
             const cityName = document.getElementById('city').value;
-            document.getElementById('status').textContent = 'Fetching data...';
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = '⏳ Fetching weather data...';
+            statusEl.className = 'status loading';
             
             try {
                 if (cityName === 'All') {
                     const allData = {};
                     for (const [name, coords] of Object.entries(cities)) {
-                        allData[name] = await fetchCityData(name, coords);
+                        allData[name] = await fetchCityData(coords);
                     }
                     currentData = allData;
-                    displayAllCities(allData);
+                    displayData(allData);
                 } else {
-                    const data = await fetchCityData(cityName, cities[cityName]);
+                    const data = await fetchCityData(cities[cityName]);
                     currentData = {[cityName]: data};
-                    displaySingleCity(cityName, data);
+                    displayData(currentData);
                 }
                 
-                // Update rig count (simulated)
-                document.getElementById('rigCount').textContent = '127';
-                
-                document.getElementById('status').textContent = '✅ Data updated';
+                statusEl.textContent = '✅ Data updated successfully';
+                statusEl.className = 'status';
             } catch (error) {
-                document.getElementById('status').textContent = '❌ Error: ' + error.message;
+                statusEl.textContent = '❌ Error: ' + error.message;
+                statusEl.className = 'status loading';
+                console.error(error);
             }
         }
         
-        async function fetchCityData(city, coords) {
+        async function fetchCityData(coords) {
             const [lat, lon] = coords;
             const response = await fetch(
-                `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=America/New_York&forecast_days=10&temperature_unit=fahrenheit`
-            );
-            const data = await response.json();
-            return data.daily;
-        }
-        
-        function displayAllCities(allData) {
-            let totalHDD = 0, totalCDD = 0, totalTemp = 0, count = 0;
-            let html = '';
-            
-            for (const [cityName, daily] of Object.entries(allData)) {
-                const minF = daily.temperature_2m_min[0];
-                const maxF = daily.temperature_2m_max[0];
-                const avgF = (minF + maxF) / 2;
-                
-                const hdd = calculateHDD(avgF, 'F');
-                const cdd = calculateCDD(avgF, 'F');
-                
-                // Sum for 10 days
-                let cityHDD = 0, cityCDD = 0;
-                for (let i = 0; i < 10; i++) {
-                    const avg = (daily.temperature_2m_min[i] + daily.temperature_2m_max[i]) / 2;
-                    cityHDD += calculateHDD(avg, 'F');
-                    cityCDD += calculateCDD(avg, 'F');
-                }
-                
-                totalHDD += cityHDD;
-                totalCDD += cityCDD;
-                totalTemp += avgF;
-                count++;
-                
-                const minDisplay = convertTemp(minF, 'F');
-                const maxDisplay = convertTemp(maxF, 'F');
-                
-                html += `
-                    <div class="forecast-card">
-                        <div class="city-name">${cityName}</div>
-                        <div class="temp-display">${minDisplay.toFixed(1)}° - ${maxDisplay.toFixed(1)}°${tempUnit}</div>
-                        <div style="font-size: 12px; color: #666; margin-top: 3px;">
-                            ${weatherCodes[daily.weathercode[0]] || 'Unknown'}
-                        </div>
-                        <div class="hdd-cdd-inline">
-                            <div class="hdd-inline">
-                                ❄️ HDD: ${cityHDD.toFixed(0)}
-                            </div>
-                            <div class="cdd-inline">
-                                🔥 CDD: ${cityCDD.toFixed(0)}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            document.getElementById('forecastContent').innerHTML = html;
-            document.getElementById('totalHDD').textContent = totalHDD.toFixed(0);
-            document.getElementById('totalCDD').textContent = totalCDD.toFixed(0);
-            
-            const avgTempDisplay = convertTemp(totalTemp / count, 'F');
-            document.getElementById('avgTemp').textContent = avgTempDisplay.toFixed(1) + '°' + tempUnit;
-        }
-        
-        function displaySingleCity(cityName, daily) {
-            let totalHDD = 0, totalCDD = 0;
-            let html = '';
-            
-            for (let i = 0; i < 10; i++) {
-                const minF = daily.temperature_2m_min[i];
-                const maxF = daily.temperature_2m_ma
+                `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=America/New_York&forecast_days=10&t
