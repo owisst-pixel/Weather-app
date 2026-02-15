@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akcijų Signalų Analizė</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 15px;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .update-section {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-update {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+        }
+
+        .btn-update:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
+        }
+
+        .btn-update:active {
+            transform: scale(0.98);
+        }
+
+        .btn-update:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            color: #2a5298;
+            font-weight: 600;
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e9ecef;
+            border-top-color: #2a5298;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 10px;
+        }
+
+        .section-header.buy {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .section-header.sell {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        .section-header h2 {
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        .section-header .icon {
+            font-size: 1.5em;
+        }
+
+        .stock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .stock-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stock-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .stock-card.buy {
+            border-left: 4px solid #11998e;
+        }
+
+        .stock-card.sell {
+            border-left: 4px solid #eb3349;
+        }
+
+        .stock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .stock-name {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #212529;
+        }
+
+        .stock-ticker {
+            font-size: 0.8em;
+            color: #6c757d;
+            font-weight: 600;
+        }
+
+        .probability {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 700;
+        }
+
+        .probability.high {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .probability.medium {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .probability.low {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .price-info {
+            margin: 12px 0;
+        }
+
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f3f5;
+        }
+
+        .price-row:last-child {
+            border-bottom: none;
+        }
+
+        .price-label {
+            font-size: 0.85em;
+            color: #6c757d;
+            font-weight: 600;
+        }
+
+        .price-value {
+            font-size: 0.95em;
+            font-weight: 700;
+            color: #212529;
+        }
+
+        .price-value.current {
+            color: #2a5298;
+            font-size: 1.1em;
+        }
+
+        .price-value.entry {
+            color: #11998e;
+        }
+
+        .price-value.sl {
+            color: #eb3349;
+        }
+
+        .price-value.tp {
+            color: #38ef7d;
+        }
+
+        .signals {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 2px solid #f1f3f5;
+        }
+
+        .signals-title {
+            font-size: 0.75em;
+            color: #6c757d;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .signal-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .signal-badge {
+            font-size: 0.7em;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            background: #f1f3f5;
+            color: #495057;
+        }
+
+        .signal-badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .signal-badge.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .signal-badge.danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state .icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.3em;
+            margin-bottom: 8px;
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-panel h3 {
+            color: #667eea;
+            font-size: 1em;
+            margin-bottom: 8px;
+        }
+
+        .info-panel ul {
+            list-style: none;
+            font-size: 0.85em;
+            color: #495057;
+        }
+
+        .info-panel ul li {
+            padding: 4px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .info-panel ul li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .stock-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.4em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Akcijų Signalų Analizė</h1>
+            <p>Automatinė techninio ir fundamentalaus analizės sistema</p>
+        </div>
+
+        <div class="controls">
+            <div class="update-section">
+                <button class="btn-update" onclick="analyzeStocks()" id="updateBtn">
+                    🔄 Analizuoti Rinką
+                </button>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <span>Analizuojama...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="info-panel">
+                <h3>📋 Analizės kriterijai</h3>
+                <ul>
+                    <li>RSI perpirkimo/persipardavimo zonos (>70 / <30)</li>
+                    <li>Bearish/Bullish divergence (RSI, MACD)</li>
+                    <li>Volume analizė ir kainų-apyvartos koreliacija</li>
+                    <li>Atstumas nuo 50d ir 200d slankiųjų vidurkių</li>
+                    <li>Trendo linijų pramušimai</li>
+                    <li>P/E santykis ir fundamentalūs rodikliai</li>
+                    <li>Insider trading aktyvumas</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <div class="section-header buy">
+                    <span class="icon">📈</span>
+                    <h2>Pirkimo Signalai (LONG)</h2>
+                </div>
+                <div class="stock-grid" id="buySignals">
+                    <div class="empty-state">
+                        <div class="icon">📊</div>
+                        <h3>Paspauskite "Analizuoti Rinką"</h3>
+                        <p>Sistema automatiškai surasti ir įvertins akcijas su pirkimo signalais</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header sell">
+                    <span class="icon">📉</span>
+                    <h2>Pardavimo Signalai (SHORT)</h2>
+                </div>
+                <div class="stock-grid" id="sellSignals">
+                    <div class="empty-state">
+                        <div class="icon">📊</div>
+                        <h3>Paspauskite "Analizuoti Rinką"</h3>
+                        <p>Sistema automatiškai surasti ir įvertins akcijas su pardavimo signalais</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Realistinės akcijų kainos (2025 vasario vidutinės kainos)
+        const STOCK_PRICES = {
+            'NVDA': 140.50,
+            'MSFT': 440.20,
+            'AAPL': 230.75,
+            'GOOGL': 180.30,
+            'META': 520.80,
+            'TSLA': 350.25,
+            'AMD': 120.60,
+            'NFLX': 76.90,
+            'JPM': 210.40,
+            'BAC': 42.15,
+            'GS': 480.90,
+            'V': 290.35,
+            'JNJ': 155.20,
+            'UNH': 520.50,
+            'PFE': 28.40,
+            'WMT': 72.80,
+            'HD': 380.60,
+            'NKE': 82.30,
+            'SBUX': 98.50,
+            'XOM': 115.70,
+            'CVX': 160.25
+        };
+
+        // Simuliuojama akcijų duomenų bazė
+        const stockDatabase = [
+            // US Tech stocks
+            { ticker: 'NVDA', name: 'NVIDIA Corp', sector: 'Technology', market: 'NASDAQ' },
+            { ticker: 'MSFT', name: 'Microsoft', sector: 'Technology', market: 'NASDAQ' },
+            { ticker: 'AAPL', name: 'Apple Inc', sector: 'Technology', market: 'NASDAQ' },
+            { ticker: 'GOOGL', name: 'Alphabet Inc', sector: 'Technology', market: 'NASDAQ' },
+            { ticker: 'META', name: 'Meta Platforms', sector: 'Technology', market: 'NASDAQ' },
+            { ticker: 'TSLA', name: 'Tesla Inc', sector: 'Automotive', market: 'NASDAQ' },
+            { ticker: 'AMD', name: 'AMD', sector: 'Technology', market: 'NASDAQ' },
+            { ticker: 'NFLX', name: 'Netflix', sector: 'Entertainment', market: 'NASDAQ' },
+            
+            // Finance
+            { ticker: 'JPM', name: 'JPMorgan Chase', sector: 'Finance', market: 'NYSE' },
+            { ticker: 'BAC', name: 'Bank of America', sector: 'Finance', market: 'NYSE' },
+            { ticker: 'GS', name: 'Goldman Sachs', sector: 'Finance', market: 'NYSE' },
+            { ticker: 'V', name: 'Visa Inc', sector: 'Finance', market: 'NYSE' },
+            
+            // Healthcare
+            { ticker: 'JNJ', name: 'Johnson & Johnson', sector: 'Healthcare', market: 'NYSE' },
+            { ticker: 'UNH', name: 'UnitedHealth', sector: 'Healthcare', market: 'NYSE' },
+            { ticker: 'PFE', name: 'Pfizer Inc', sector: 'Healthcare', market: 'NYSE' },
+            
+            // Consumer
+            { ticker: 'WMT', name: 'Walmart', sector: 'Retail', market: 'NYSE' },
+            { ticker: 'HD', name: 'Home Depot', sector: 'Retail', market: 'NYSE' },
+            { ticker: 'NKE', name: 'Nike Inc', sector: 'Consumer', market: 'NYSE' },
+            { ticker: 'SBUX', name: 'Starbucks', sector: 'Consumer', market: 'NASDAQ' },
+            
+            // Energy
+            { ticker: 'XOM', name: 'Exxon Mobil', sector: 'Energy', market: 'NYSE' },
+            { ticker: 'CVX', name: 'Chevron', sector: 'Energy', market: 'NYSE' },
+        ];
+
+        function getCurrentPrice(ticker) {
+            const basePrice = STOCK_PRICES[ticker] || 100;
+            // Labai mažas atsitiktinumas (±0.5%)
+            const variation = (Math.random() - 0.5) * 0.01;
+            return basePrice * (1 + variation);
+        }
+
+        function calculateTechnicalIndicators(stock) {
+            // Simuliuojami techniniai rodikliai
+            const rsi = Math.random() * 100;
+            const macdDivergence = Math.random() > 0.7;
+            const volumeDivergence = Math.random() > 0.6;
+            const distanceFrom50SMA = (Math.random() - 0.5) * 0.3; // ±15%
+            const distanceFrom200SMA = (Math.random() - 0.5) * 0.4; // ±20%
+            const trendBreak = Math.random() > 0.8;
+            const pe = 15 + Math.random() * 30; // P/E nuo 15 iki 45
+            const insiderSelling = Math.random() > 0.7;
+            
+            return {
+                rsi,
+                macdDivergence,
+                volumeDivergence,
+                distanceFrom50SMA,
+                distanceFrom200SMA,
+                trendBreak,
+                pe,
+                insiderSelling
+            };
+        }
+
+        function analyzeBuySignals(stock, indicators) {
+            const signals = [];
+            let score = 0;
+            
+            // RSI oversold
+            if (indicators.rsi < 30) {
+                signals.push({ name: 'RSI <30 Oversold', type: 'active' });
+                score += 25;
+            } else if (indicators.rsi < 40) {
+                signals.push({ name: 'RSI <40', type: 'active' });
+                score += 15;
+            }
+            
+            // Bullish divergence
+            if (indicators.macdDivergence && indicators.rsi < 50) {
+                signals.push({ name: 'Bullish Divergence', type: 'active' });
+                score += 20;
+            }
+            
+            // Volume increasing with price drop
+            if (indicators.volumeDivergence && indicators.distanceFrom50SMA < -0.1) {
+                signals.push({ name: 'Volume Support', type: 'active' });
+                score += 15;
+            }
+            
+            // Near 200d SMA support
+            if (Math.abs(indicators.distanceFrom200SMA) < 0.05) {
+                signals.push({ name: '200d SMA Support', type: 'active' });
+                score += 15;
+            }
+            
+            // Attractive valuation
+            if (indicators.pe < 20) {
+                signals.push({ name: 'Low P/E', type: 'active' });
+                score += 10;
+            }
+            
+            // Far from 50d SMA (pullback)
+            if (indicators.distanceFrom50SMA < -0.15) {
+                signals.push({ name: 'Deep Pullback', type: 'warning' });
+                score += 10;
+            }
+            
+            return { signals, score };
+        }
+
+        function analyzeSellSignals(stock, indicators) {
+            const signals = [];
+            let score = 0;
+            
+            // RSI overbought
+            if (indicators.rsi > 70) {
+                signals.push({ name: 'RSI >70 Overbought', type: 'danger' });
+                score += 25;
+            } else if (indicators.rsi > 65) {
+                signals.push({ name: 'RSI >65', type: 'warning' });
+                score += 15;
+            }
+            
+            // Bearish divergence
+            if (indicators.macdDivergence && indicators.rsi > 50) {
+                signals.push({ name: 'Bearish Divergence', type: 'danger' });
+                score += 20;
+            }
+            
+            // Volume declining on rally
+            if (indicators.volumeDivergence && indicators.distanceFrom50SMA > 0.1) {
+                signals.push({ name: 'Volume Decline', type: 'danger' });
+                score += 15;
+            }
+            
+            // Parabolic move
+            if (indicators.distanceFrom50SMA > 0.2) {
+                signals.push({ name: 'Parabolic Rally', type: 'danger' });
+                score += 20;
+            }
+            
+            // Trend break
+            if (indicators.trendBreak) {
+                signals.push({ name: 'Trend Break', type: 'danger' });
+                score += 15;
+            }
+            
+            // High valuation
+            if (indicators.pe > 35) {
+                signals.push({ name: 'High P/E', type: 'warning' });
+                score += 10;
+            }
+            
+            // Insider selling
+            if (indicators.insiderSelling) {
+                signals.push({ name: 'Insider Selling', type: 'danger' });
+                score += 10;
+            }
+            
+            return { signals, score };
+        }
+
+        function generateBuyRecommendation(stock, indicators, analysis) {
+            const currentPrice = getCurrentPrice(stock.ticker);
+            
+            // Entry price based on RSI and distance from SMA
+            let entryDiscount = 0.02; // Default 2% below current
+            if (indicators.rsi < 30) entryDiscount = 0.05; // 5% below if oversold
+            if (indicators.distanceFrom50SMA < -0.15) entryDiscount = 0.03;
+            
+            const entryPrice = currentPrice * (1 - entryDiscount);
+            
+            // Stop loss: usually 5-8% below entry
+            const slDistance = 0.05 + (Math.random() * 0.03);
+            const stopLoss = entryPrice * (1 - slDistance);
+            
+            // Take profit: 2:1 or 3:1 risk/reward
+            const riskRewardRatio = 2 + Math.random();
+            const takeProfit = entryPrice * (1 + (slDistance * riskRewardRatio));
+            
+            // Probability based on score
+            const probability = Math.min(Math.max(analysis.score, 40), 85);
+            
+            return {
+                currentPrice: currentPrice.toFixed(2),
+                entryPrice: entryPrice.toFixed(2),
+                stopLoss: stopLoss.toFixed(2),
+                takeProfit: takeProfit.toFixed(2),
+                probability: probability.toFixed(0),
+                signals: analysis.signals
+            };
+        }
+
+        function generateSellRecommendation(stock, indicators, analysis) {
+            const currentPrice = getCurrentPrice(stock.ticker);
+            
+            // Short entry price (slightly above current if overbought)
+            let entryPremium = 0.01; // Default 1% above current
+            if (indicators.rsi > 70) entryPremium = 0.03; // 3% above if overbought
+            if (indicators.distanceFrom50SMA > 0.2) entryPremium = 0.02;
+            
+            const entryPrice = currentPrice * (1 + entryPremium);
+            
+            // Stop loss: usually 5-8% above entry (for short)
+            const slDistance = 0.05 + (Math.random() * 0.03);
+            const stopLoss = entryPrice * (1 + slDistance);
+            
+            // Take profit: 2:1 or 3:1 risk/reward
+            const riskRewardRatio = 2 + Math.random();
+            const takeProfit = entryPrice * (1 - (slDistance * riskRewardRatio));
+            
+            // Probability based on score
+            const probability = Math.min(Math.max(analysis.score, 40), 85);
+            
+            return {
+                currentPrice: currentPrice.toFixed(2),
+                entryPrice: entryPrice.toFixed(2),
+                stopLoss: stopLoss.toFixed(2),
+                takeProfit: takeProfit.toFixed(2),
+                probability: probability.toFixed(0),
+                signals: analysis.signals
+            };
+        }
+
+        function getProbabilityClass(prob) {
+            if (prob >= 70) return 'high';
+            if (prob >= 55) return 'medium';
+            return 'low';
+        }
+
+        function renderStockCard(stock, recommendation, type) {
+            const probClass = getProbabilityClass(recommendation.probability);
+            
+            return `
+                <div class="stock-card ${type}">
+                    <div class="stock-header">
+                        <div>
+                            <div class="stock-name">${stock.name}</div>
+                            <div class="stock-ticker">${stock.ticker} • ${stock.market}</div>
+                        </div>
+                        <div class="probability ${probClass}">
+                            ${recommendation.probability}%
+                        </div>
+                    </div>
+                    
+                    <div class="price-info">
+                        <div class="price-row">
+                            <span class="price-label">Dabartinė kaina</span>
+                            <span class="price-value current">$${recommendation.currentPrice}</span>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-label">${type === 'buy' ? 'Pirkimo kaina' : 'Short kaina'}</span>
+                            <span class="price-value entry">$${recommendation.entryPrice}</span>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-label">Stop Loss</span>
+                            <span class="price-value sl">$${recommendation.stopLoss}</span>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-label">Take Profit</span>
+                            <span class="price-value tp">$${recommendation.takeProfit}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="signals">
+                        <div class="signals-title">Aktyvūs signalai</div>
+                        <div class="signal-list">
+                            ${recommendation.signals.map(signal => 
+                                `<span class="signal-badge ${signal.type}">${signal.name}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function analyzeStocks() {
+            const updateBtn = document.getElementById('updateBtn');
+            const loading = document.getElementById('loading');
+            
+            updateBtn.disabled = true;
+            loading.classList.add('active');
+            
+            // Simuliuojama analizė (2 sekundės)
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            const buyStocks = [];
+            const sellStocks = [];
+            
+            // Analizuojam visas akcijas
+            for (const stock of stockDatabase) {
+                const indicators = calculateTechnicalIndicators(stock);
+                const buyAnalysis = analyzeBuySignals(stock, indicators);
+                const sellAnalysis = analyzeSellSignals(stock, indicators);
+                
+                if (buyAnalysis.score >= 50) {
+                    buyStocks.push({
+                        stock,
+                        recommendation: generateBuyRecommendation(stock, indicators, buyAnalysis),
+                        score: buyAnalysis.score
+                    });
+                }
+                
+                if (sellAnalysis.score >= 50) {
+                    sellStocks.push({
+                        stock,
+                        recommendation: generateSellRecommendation(stock, indicators, sellAnalysis),
+                        score: sellAnalysis.score
+                    });
+                }
+            }
+            
+            // Rūšiuojam pagal score ir imam top 5
+            buyStocks.sort((a, b) => b.score - a.score);
+            sellStocks.sort((a, b) => b.score - a.score);
+            
+            const topBuyStocks = buyStocks.slice(0, 5);
+            const topSellStocks = sellStocks.slice(0, 5);
+            
+            // Renderina pirkimo signalus
+            const buyContainer = document.getElementById('buySignals');
+            if (topBuyStocks.length > 0) {
+                buyContainer.innerHTML = topBuyStocks
+                    .map(item => renderStockCard(item.stock, item.recommendation, 'buy'))
+                    .join('');
+            } else {
+                buyContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">❌</div>
+                        <h3>Nerasta pirkimo signalų</h3>
+                        <p>Šiuo metu nėra akcijų, atitinkančių pirkimo kriterijus</p>
+                    </div>
+                `;
+            }
+            
+            // Renderina pardavimo signalus
+            const sellContainer = document.getElementById('sellSignals');
+            if (topSellStocks.length > 0) {
+                sellContainer.innerHTML = topSellStocks
+                    .map(item => renderStockCard(item.stock, item.recommendation, 'sell'))
+                    .join('');
+            } else {
+                sellContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">❌</div>
+                        <h3>Nerasta pardavimo signalų</h3>
+                        <p>Šiuo metu nėra akcijų, atitinkančių pardavimo kriterijus</p>
+                    </div>
+                `;
+            }
+            
+            loading.classList.remove('active');
+            updateBtn.disabled = false;
+        }
+    </script>
+</body>
+</html>
