@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Užsakymų Sistema</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.3em;
+            margin-bottom: 3px;
+        }
+
+        .header p {
+            font-size: 0.75em;
+            opacity: 0.9;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 0.7em;
+            color: #6c757d;
+            margin-bottom: 3px;
+        }
+
+        .stat-card p {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .controls {
+            padding: 15px;
+            background: white;
+        }
+
+        .section-title {
+            font-size: 1em;
+            margin-bottom: 10px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .form-row.full {
+            grid-template-columns: 1fr;
+        }
+
+        .form-group label {
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-bottom: 3px;
+            color: #495057;
+            display: block;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1.5px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-row {
+            display: flex;
+            gap: 15px;
+            margin: 8px 0;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+
+        .checkbox-group label {
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            grid-column: 1 / -1;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-undo {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .btn-undo:disabled {
+            background: #e9ecef;
+            color: #adb5bd;
+            cursor: not-allowed;
+        }
+
+        .content {
+            padding: 10px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .filter-bar::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .filter-bar::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 2px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1.5px solid #e9ecef;
+            background: white;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.75em;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .order-card {
+            background: white;
+            border: 1.5px solid #e9ecef;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .order-number {
+            font-weight: 700;
+            font-size: 1em;
+            color: #667eea;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 600;
+        }
+
+        .status-užsakyta {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status-gaunama {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-gauta {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .order-details {
+            font-size: 0.85em;
+            margin-bottom: 8px;
+        }
+
+        .order-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+            color: #495057;
+        }
+
+        .order-row strong {
+            color: #212529;
+        }
+
+        .payment-row {
+            display: flex;
+            gap: 8px;
+            margin: 6px 0;
+        }
+
+        .payment-badge {
+            flex: 1;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.7em;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .payment-paid {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .payment-unpaid {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .delivery-info {
+            font-size: 0.75em;
+            padding: 5px 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin: 6px 0;
+            display: inline-block;
+        }
+
+        .delivery-warning {
+            background: #fff3cd;
+            color: #856404;
+            font-weight: 600;
+        }
+
+        .order-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .action-btn {
+            padding: 7px;
+            font-size: 0.75em;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-edit {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            margin-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state h3 {
+            margin-top: 15px;
+            font-size: 1.1em;
+        }
+
+        .undo-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+            font-size: 0.85em;
+            z-index: 2000;
+        }
+
+        .undo-notification.show {
+            display: block;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateX(-50%) translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📦 Užsakymai</h1>
+            <p>Valdymo sistema</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Viso</h3>
+                <p id="totalOrders">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Užsakyta</h3>
+                <p id="orderedCount">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Gaunama</h3>
+                <p id="receivingCount">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Gauta</h3>
+                <p id="receivedCount">0</p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="section-title">➕ Naujas užsakymas</div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Užsakymo Nr.</label>
+                    <input type="text" id="orderNumber" placeholder="UZ-001">
+                </div>
+                <div class="form-group">
+                    <label>Tiekėjas</label>
+                    <input type="text" id="supplier" placeholder="Tiekėjas">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Prekė</label>
+                    <input type="text" id="product" placeholder="Prekė">
+                </div>
+                <div class="form-group">
+                    <label>Kiekis</label>
+                    <input type="number" id="quantity" placeholder="26.6" step="0.01" min="0.01">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Būsena</label>
+                    <select id="status">
+                        <option value="Užsakyta">Užsakyta</option>
+                        <option value="Gaunama">Gaunama</option>
+                        <option value="Gauta">Gauta</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Data</label>
+                    <input type="date" id="orderDate">
+                </div>
+            </div>
+
+            <div class="form-row full">
+                <div class="form-group">
+                    <label>Pristatymas (dienomis)</label>
+                    <input type="number" id="deliveryDays" placeholder="30" min="1">
+                </div>
+            </div>
+
+            <div class="checkbox-row">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="paidToSupplier">
+                    <label for="paidToSupplier">Tiekėjui</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="paidByCustomer">
+                    <label for="paidByCustomer">Pirkėjas</label>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" onclick="addOrder()">➕ Pridėti</button>
+                <button class="btn-secondary" onclick="clearForm()">🔄 Valyti</button>
+                <button class="btn-undo" id="undoBtn" onclick="undoLastAction()" disabled>↶ Atšaukti</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="section-title">📋 Sąrašas</div>
+            
+            <div class="filter-bar">
+                <button class="filter-btn active" onclick="filterOrders('all')">Visi</button>
+                <button class="filter-btn" onclick="filterOrders('Užsakyta')">Užsakyta</button>
+                <button class="filter-btn" onclick="filterOrders('Gaunama')">Gaunama</button>
+                <button class="filter-btn" onclick="filterOrders('Gauta')">Gauta</button>
+                <button class="filter-btn" onclick="filterOrders('unpaid-supplier')">Netiekėjui</button>
+                <button class="filter-btn" onclick="filterOrders('unpaid-customer')">Nepirkėjas</button>
+                <button class="filter-btn" onclick="filterOrders('overdue')">Vėluoja</button>
+            </div>
+
+            <div id="ordersContainer"></div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Redaguoti</h2>
+            </div>
+            <div class="form-group" style="margin-bottom: 10px;">
+                <label>Būsena</label>
+                <select id="editStatus">
+                    <option value="Užsakyta">Užsakyta</option>
+                    <option value="Gaunama">Gaunama</option>
+                    <option value="Gauta">Gauta</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 10px;">
+                <label>Kiekis</label>
+                <input type="number" id="editQuantity" step="0.01" min="0.01">
+            </div>
+            <div class="form-group" style="margin-bottom: 10px;">
+                <label>Pristatymas (dienomis)</label>
+                <input type="number" id="editDeliveryDays" min="1">
+            </div>
+            <div class="checkbox-row">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="editPaidToSupplier">
+                    <label for="editPaidToSupplier">Tiekėjui</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="editPaidByCustomer">
+                    <label for="editPaidByCustomer">Pirkėjas</label>
+                </div>
+            </div>
+            <div class="button-group" style="margin-top: 15px;">
+                <button class="btn-primary" onclick="saveEdit()">Išsaugoti</button>
+                <button class="btn-secondary" onclick="closeEditModal()">Atšaukti</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="undoNotification" class="undo-notification">
+        ✓ Atšaukta
+    </div>
+
+    <script>
+        let orders = [];
+        let editingOrderId = null;
+        let currentFilter = 'all';
+        let actionHistory = [];
+
+        function loadOrders() {
+            const saved = localStorage.getItem('ordersData');
+            if (saved) {
+                orders = JSON.parse(saved);
+            }
+            renderOrders();
+            updateStats();
+        }
+
+        function saveOrders() {
+            localStorage.setItem('ordersData', JSON.stringify(orders));
+        }
+
+        function saveAction(type, data) {
+            actionHistory.push({
+                type: type,
+                data: JSON.parse(JSON.stringify(data)),
+                timestamp: Date.now()
+            });
+            
+            if (actionHistory.length > 10) {
+                actionHistory.shift();
+            }
+            
+            document.getElementById('undoBtn').disabled = false;
+        }
+
+        function undoLastAction() {
+            if (actionHistory.length === 0) return;
+            
+            const lastAction = actionHistory.pop();
+            
+            switch(lastAction.type) {
+                case 'add':
+                    orders = orders.filter(o => o.id !== lastAction.data.id);
+                    break;
+                case 'edit':
+                    const index = orders.findIndex(o => o.id === lastAction.data.id);
+                    if (index !== -1) {
+                        orders[index] = lastAction.data;
+                    }
+                    break;
+                case 'delete':
+                    orders.push(lastAction.data);
+                    break;
+            }
+            
+            saveOrders();
+            renderOrders();
+            updateStats();
+            
+            if (actionHistory.length === 0) {
+                document.getElementById('undoBtn').disabled = true;
+            }
+            
+            const notification = document.getElementById('undoNotification');
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 1500);
+        }
+
+        function addOrder() {
+            const orderNumber = document.getElementById('orderNumber').value.trim();
+            const supplier = document.getElementById('supplier').value.trim();
+            const product = document.getElementById('product').value.trim();
+            const quantity = parseFloat(document.getElementById('quantity').value);
+            const status = document.getElementById('status').value;
+            const orderDate = document.getElementById('orderDate').value;
+            const deliveryDays = parseInt(document.getElementById('deliveryDays').value) || null;
+            const paidToSupplier = document.getElementById('paidToSupplier').checked;
+            const paidByCustomer = document.getElementById('paidByCustomer').checked;
+
+            if (!orderNumber || !supplier || !product || !quantity || !orderDate) {
+                alert('Užpildykite visus laukus!');
+                return;
+            }
+
+            const order = {
+                id: Date.now(),
+                orderNumber,
+                supplier,
+                product,
+                quantity,
+                status,
+                orderDate,
+                deliveryDays,
+                paidToSupplier,
+                paidByCustomer,
+                createdAt: new Date().toISOString()
+            };
+
+            saveAction('add', order);
+            orders.push(order);
+            saveOrders();
+            renderOrders();
+            updateStats();
+            clearForm();
+        }
+
+        function clearForm() {
+            document.getElementById('orderNumber').value = '';
+            document.getElementById('supplier').value = '';
+            document.getElementById('product').value = '';
+            document.getElementById('quantity').value = '';
+            document.getElementById('status').value = 'Užsakyta';
+            document.getElementById('orderDate').value = '';
+            document.getElementById('deliveryDays').value = '';
+            document.getElementById('paidToSupplier').checked = false;
+            document.getElementById('paidByCustomer').checked = false;
+        }
+
+        function calculateDaysSince(orderDate) {
+            const order = new Date(orderDate);
+            const today = new Date();
+            const diff = Math.floor((today - order) / (1000 * 60 * 60 * 24));
+            return diff;
+        }
+
+        function isOverdue(orderDate, deliveryDays) {
+            if (!deliveryDays) return false;
+            const daysSince = calculateDaysSince(orderDate);
+            return daysSince > deliveryDays;
+        }
+
+        function renderOrders() {
+            const container = document.getElementById('ordersContainer');
+            
+            let filteredOrders = orders;
+            
+            if (currentFilter !== 'all') {
+                if (currentFilter === 'unpaid-supplier') {
+                    filteredOrders = orders.filter(o => !o.paidToSupplier);
+                } else if (currentFilter === 'unpaid-customer') {
+                    filteredOrders = orders.filter(o => !o.paidByCustomer);
+                } else if (currentFilter === 'overdue') {
+                    filteredOrders = orders.filter(o => isOverdue(o.orderDate, o.deliveryDays));
+                } else {
+                    filteredOrders = orders.filter(o => o.status === currentFilter);
+                }
+            }
+
+            if (filteredOrders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 3em;">📦</div>
+                        <h3>Nėra užsakymų</h3>
+                        <p style="font-size: 0.85em; margin-top: 5px;">Pridėkite naują užsakymą</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredOrders.map(order => {
+                const daysSince = calculateDaysSince(order.orderDate);
+                const overdue = isOverdue(order.orderDate, order.deliveryDays);
+                
+                let deliveryInfo = `${daysSince} d.`;
+                if (order.deliveryDays) {
+                    deliveryInfo += ` / ${order.deliveryDays} d.`;
+                }
+                
+                return `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <div class="order-number">${order.orderNumber}</div>
+                            <span class="status-badge status-${order.status.toLowerCase()}">${order.status}</span>
+                        </div>
+                        
+                        <div class="order-details">
+                            <div class="order-row">
+                                <span>Tiekėjas:</span>
+                                <strong>${order.supplier}</strong>
+                            </div>
+                            <div class="order-row">
+                                <span>Prekė:</span>
+                                <strong>${order.product}</strong>
+                            </div>
+                            <div class="order-row">
+                                <span>Kiekis:</span>
+                                <strong>${order.quantity}</strong>
+                            </div>
+                            <div class="order-row">
+                                <span>Data:</span>
+                                <span>${new Date(order.orderDate).toLocaleDateString('lt-LT')}</span>
+                            </div>
+                        </div>
+
+                        <div class="payment-row">
+                            <div class="payment-badge ${order.paidToSupplier ? 'payment-paid' : 'payment-unpaid'}">
+                                ${order.paidToSupplier ? '✓' : '✗'} Tiekėjui
+                            </div>
+                            <div class="payment-badge ${order.paidByCustomer ? 'payment-paid' : 'payment-unpaid'}">
+                                ${order.paidByCustomer ? '✓' : '✗'} Pirkėjas
+                            </div>
+                        </div>
+
+                        <div class="delivery-info ${overdue ? 'delivery-warning' : ''}">
+                            ${overdue ? '⚠️ ' : ''}🚚 ${deliveryInfo}${overdue ? ' (vėluoja)' : ''}
+                        </div>
+
+                        <div class="order-actions">
+                            <button class="action-btn btn-edit" onclick="openEditModal(${order.id})">✏️ Keisti</button>
+                            <button class="action-btn btn-delete" onclick="deleteOrder(${order.id})">🗑️ Trinti</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterOrders(filter) {
+            currentFilter = filter;
+            
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            renderOrders();
+        }
+
+        function updateStats() {
+            document.getElementById('totalOrders').textContent = orders.length;
+            document.getElementById('orderedCount').textContent = orders.filter(o => o.status === 'Užsakyta').length;
+            document.getElementById('receivingCount').textContent = orders.filter(o => o.status === 'Gaunama').length;
+            document.getElementById('receivedCount').textContent = orders.filter(o => o.status === 'Gauta').length;
+        }
+
+        function openEditModal(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (!order) return;
+
+            editingOrderId = orderId;
+            document.getElementById('editStatus').value = order.status;
+            document.getElementById('editQuantity').value = order.quantity;
+            document.getElementById('editDeliveryDays').value = order.deliveryDays || '';
+            document.getElementById('editPaidToSupplier').checked = order.paidToSupplier;
+            document.getElementById('editPaidByCustomer').checked = order.paidByCustomer;
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+            editingOrderId = null;
+        }
+
+        function saveEdit() {
+            if (!editingOrderId) return;
+
+            const orderIndex = orders.findIndex(o => o.id === editingOrderId);
+            if (orderIndex === -1) return;
+
+            saveAction('edit', orders[orderIndex]);
+
+            orders[orderIndex].status = document.getElementById('editStatus').value;
+            orders[orderIndex].quantity = parseFloat(document.getElementById('editQuantity').value);
+            orders[orderIndex].deliveryDays = parseInt(document.getElementById('editDeliveryDays').value) || null;
+            orders[orderIndex].paidToSupplier = document.getElementById('editPaidToSupplier').checked;
+            orders[orderIndex].paidByCustomer = document.getElementById('editPaidByCustomer').checked;
+
+            saveOrders();
+            renderOrders();
+            updateStats();
+            closeEditModal();
+        }
+
+        function deleteOrder(orderId) {
+            if (!confirm('Trinti užsakymą?')) return;
+
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                saveAction('delete', order);
+            }
+
+            orders = orders.filter(o => o.id !== orderId);
+            saveOrders();
+            renderOrders();
+            updateStats();
+        }
+
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+
+        loadOrders();
+        document.getElementById('orderDate').valueAsDate = new Date();
+    </script>
+</body>
+</html>
