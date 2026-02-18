@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Užsakymų Valdymas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 100%;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.4em;
+            margin-bottom: 3px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+
+        .time-filter {
+            display: flex;
+            gap: 6px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            overflow-x: auto;
+            justify-content: center;
+        }
+
+        .time-btn {
+            padding: 6px 12px;
+            border: 1.5px solid #e9ecef;
+            background: white;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.75em;
+            white-space: nowrap;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin: 0;
+        }
+
+        .time-btn:active {
+            transform: scale(0.95);
+        }
+
+        .time-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 10px 8px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+        }
+
+        .stat-card h3 {
+            font-size: 0.65em;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .stat-card p {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-card.profit p { color: #28a745; }
+
+        .controls {
+            padding: 15px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+
+        .section-title {
+            font-size: 1em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 12px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .form-row.full {
+            grid-template-columns: 1fr;
+        }
+
+        .form-group label {
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-bottom: 3px;
+            display: block;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1.5px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .products-section {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+        }
+
+        .products-title {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .product-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1.5px solid #e9ecef;
+        }
+
+        .product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .product-number {
+            font-weight: 700;
+            color: #495057;
+            font-size: 0.85em;
+        }
+
+        .btn-remove-product {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .product-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .product-summary {
+            background: #e9ecef;
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            margin-top: 6px;
+        }
+
+        .product-summary strong {
+            color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9em;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: transform 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-add-product {
+            background: #28a745;
+            color: white;
+            padding: 10px;
+        }
+
+        .btn-clear {
+            background: #6c757d;
+            color: white;
+        }
+
+        .content {
+            padding: 15px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1.5px solid #e9ecef;
+            background: white;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.75em;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .date-filter {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .date-filter input {
+            padding: 6px;
+            border: 1.5px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 0.75em;
+        }
+
+        .order-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .order-card.planuojama { border-left: 4px solid #ffc107; }
+        .order-card.vykdoma { border-left: 4px solid #17a2b8; }
+        .order-card.baigta { border-left: 4px solid #28a745; }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .order-number {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 1em;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 600;
+        }
+
+        .status-planuojama { background: #fff3cd; color: #856404; }
+        .status-vykdoma { background: #d1ecf1; color: #0c5460; }
+        .status-baigta { background: #d4edda; color: #155724; }
+
+        .order-details {
+            font-size: 0.85em;
+            margin-bottom: 8px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+            color: #495057;
+        }
+
+        .detail-row strong {
+            color: #212529;
+        }
+
+        .products-list {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 6px;
+            margin: 8px 0;
+        }
+
+        .products-list-title {
+            font-size: 0.75em;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 6px;
+        }
+
+        .product-line {
+            font-size: 0.75em;
+            padding: 4px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .product-line:last-child {
+            border-bottom: none;
+        }
+
+        .shipment-info {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 6px;
+            margin: 8px 0;
+            font-size: 0.85em;
+        }
+
+        .shipment-progress {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 6px;
+        }
+
+        .progress-text {
+            font-size: 0.75em;
+            color: #6c757d;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            margin: 0 8px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+
+        .payment-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin: 8px 0;
+        }
+
+        .payment-badge {
+            padding: 6px;
+            border-radius: 6px;
+            font-size: 0.7em;
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .payment-badge:active {
+            transform: scale(0.95);
+        }
+
+        .payment-badge.paid { background: #d4edda; color: #155724; }
+        .payment-badge.unpaid { background: #f8d7da; color: #721c24; }
+
+        .profit-box {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 10px;
+            border-radius: 6px;
+            margin: 8px 0;
+        }
+
+        .profit-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+            font-size: 0.85em;
+        }
+
+        .profit-label {
+            color: #6c757d;
+            font-weight: 600;
+        }
+
+        .profit-value {
+            font-weight: 700;
+        }
+
+        .profit-value.positive { color: #28a745; }
+        .profit-value.negative { color: #dc3545; }
+
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .btn-small {
+            padding: 7px;
+            font-size: 0.75em;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .btn-edit { background: #17a2b8; color: white; }
+        .btn-delete { background: #dc3545; color: white; }
+
+        .empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active { display: flex; }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            margin-bottom: 15px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.2em;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📦 Užsakymų Valdymas</h1>
+            <p>Verslo tarpininkavimas</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Planuojami</h3>
+                <p id="statPlanned">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Vykdomi</h3>
+                <p id="statActive">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Baigti</h3>
+                <p id="statCompleted">0</p>
+            </div>
+            <div class="stat-card profit">
+                <h3>💰 Pelnas</h3>
+                <p id="statProfit">€0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Viso</h3>
+                <p id="statTotal">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Marža</h3>
+                <p id="statMargin">0%</p>
+            </div>
+        </div>
+
+        <div class="time-filter">
+            <button class="time-btn" data-period="today">Šiandien</button>
+            <button class="time-btn" data-period="week">Savaitė</button>
+            <button class="time-btn" data-period="month">Mėnuo</button>
+            <button class="time-btn" data-period="year">Šie metai</button>
+            <button class="time-btn active" data-period="all">Viso</button>
+        </div>
+
+        <div class="controls">
+            <div class="section-title">➕ Naujas užsakymas</div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Užsakymo Nr. *</label>
+                    <input type="text" id="orderNum" placeholder="UZ-2025-001">
+                </div>
+                <div class="form-group">
+                    <label>Data *</label>
+                    <input type="date" id="orderDate">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tiekėjas *</label>
+                    <input type="text" id="supplier" placeholder="Įmonės pavadinimas">
+                </div>
+                <div class="form-group">
+                    <label>Gavėjas *</label>
+                    <input type="text" id="receiver" placeholder="Pirkėjo pavadinimas">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Kur plaukia *</label>
+                    <input type="text" id="destination" placeholder="Šalis, uostas">
+                </div>
+                <div class="form-group">
+                    <label>Plaukimo laikas (d.) *</label>
+                    <input type="number" id="shippingDays" placeholder="30" min="1">
+                </div>
+            </div>
+
+            <div class="products-section">
+                <div class="products-title">🏷️ Prekės sąrašas</div>
+                <div id="productsList"></div>
+                <button class="btn-add-product" onclick="addProductField()">+ Pridėti prekę</button>
+            </div>
+
+            <button class="btn-add" onclick="createOrder()">➕ Sukurti užsakymą</button>
+            <button class="btn-clear" onclick="clearForm()">🔄 Išvalyti</button>
+        </div>
+
+        <div class="content">
+            <div class="section-title">📋 Užsakymų sąrašas</div>
+            
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">Visi</button>
+                <button class="filter-btn" data-filter="planuojama">🟡 Planuojami</button>
+                <button class="filter-btn" data-filter="vykdoma">🔵 Vykdomi</button>
+                <button class="filter-btn" data-filter="baigta">🟢 Baigti</button>
+            </div>
+
+            <div class="date-filter">
+                <input type="date" id="filterDateFrom" placeholder="Nuo">
+                <input type="date" id="filterDateTo" placeholder="Iki">
+            </div>
+
+            <div id="ordersList"></div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Redaguoti užsakymą</h2>
+            </div>
+            
+            <div class="form-group">
+                <label>Būsena</label>
+                <select id="editStatus">
+                    <option value="planuojama">Planuojama</option>
+                    <option value="vykdoma">Vykdoma</option>
+                    <option value="baigta">Baigta</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Plaukimo laikas (d.)</label>
+                <input type="number" id="editShippingDays">
+            </div>
+
+            <button class="btn-add" onclick="saveEdit()">💾 Išsaugoti</button>
+            <button class="btn-clear" onclick="closeModal()">✖ Uždaryti</button>
+        </div>
+    </div>
+
+    <script>
+        let orders = [];
+        let currentFilter = 'all';
+        let currentTimePeriod = 'all';
+        let editingOrderId = null;
+        let productFields = [];
+
+        // Initialize with one product field
+        function initProductFields() {
+            productFields = [];
+            addProductField();
+        }
+
+        // Add product field
+        function addProductField() {
+            const id = Date.now() + Math.random();
+            productFields.push({
+                id: id,
+                product: '',
+                quantity: '',
+                unit: 'vnt',
+                buyPrice: '',
+                sellPrice: ''
+            });
+            renderProductFields();
+        }
+
+        // Remove product field
+        function removeProductField(id) {
+            if (productFields.length <= 1) {
+                alert('Užsakyme turi būti bent viena prekė!');
+                return;
+            }
+            productFields = productFields.filter(p => p.id !== id);
+            renderProductFields();
+        }
+
+        // Render product fields
+        function renderProductFields() {
+            const container = document.getElementById('productsList');
+            
+            container.innerHTML = productFields.map((field, index) => `
+                <div class="product-item">
+                    <div class="product-header">
+                        <span class="product-number">Prekė ${index + 1}</span>
+                        ${productFields.length > 1 ? 
+                            `<button class="btn-remove-product" onclick="removeProductField(${field.id})">✖ Šalinti</button>` 
+                            : ''}
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 6px;">
+                        <label>Pavadinimas *</label>
+                        <input type="text" 
+                               data-id="${field.id}" 
+                               data-field="product" 
+                               value="${field.product}"
+                               placeholder="Prekės pavadinimas"
+                               onchange="updateProductField(this)">
+                    </div>
+                    
+                    <div class="product-grid">
+                        <div class="form-group">
+                            <label>Kiekis *</label>
+                            <input type="number" 
+                                   data-id="${field.id}" 
+                                   data-field="quantity"
+                                   value="${field.quantity}"
+                                   placeholder="100"
+                                   step="0.01"
+                                   onchange="updateProductField(this)">
+                        </div>
+                        <div class="form-group">
+                            <label>Mato vnt *</label>
+                            <select data-id="${field.id}" 
+                                    data-field="unit"
+                                    onchange="updateProductField(this)">
+                                <option value="vnt" ${field.unit === 'vnt' ? 'selected' : ''}>vnt</option>
+                                <option value="kg" ${field.unit === 'kg' ? 'selected' : ''}>kg</option>
+                                <option value="t" ${field.unit === 't' ? 'selected' : ''}>t</option>
+                                <option value="m" ${field.unit === 'm' ? 'selected' : ''}>m</option>
+                                <option value="m²" ${field.unit === 'm²' ? 'selected' : ''}>m²</option>
+                                <option value="m³" ${field.unit === 'm³' ? 'selected' : ''}>m³</option>
+                                <option value="l" ${field.unit === 'l' ? 'selected' : ''}>l</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            ${field.quantity && field.unit ? 
+                                `<span style="font-size: 0.75em; color: #667eea; font-weight: 600;">${field.quantity} ${field.unit}</span>` 
+                                : ''}
+                        </div>
+                    </div>
+                    
+                    <div class="product-grid-2">
+                        <div class="form-group">
+                            <label>Pirkimas (€/vnt) *</label>
+                            <input type="number" 
+                                   data-id="${field.id}" 
+                                   data-field="buyPrice"
+                                   value="${field.buyPrice}"
+                                   placeholder="10.50"
+                                   step="0.01"
+                                   onchange="updateProductField(this)">
+                        </div>
+                        <div class="form-group">
+                            <label>Pardavimas (€/vnt) *</label>
+                            <input type="number" 
+                                   data-id="${field.id}" 
+                                   data-field="sellPrice"
+                                   value="${field.sellPrice}"
+                                   placeholder="15.00"
+                                   step="0.01"
+                                   onchange="updateProductField(this)">
+                        </div>
+                    </div>
+                    
+                    ${field.quantity && field.buyPrice && field.sellPrice ? `
+                        <div class="product-summary">
+                            Pirkimas: <strong>€${(field.quantity * field.buyPrice).toFixed(2)}</strong> | 
+                            Pardavimas: <strong>€${(field.quantity * field.sellPrice).toFixed(2)}</strong> | 
+                            Pelnas: <strong style="color: ${(field.sellPrice - field.buyPrice) > 0 ? '#28a745' : '#dc3545'}">
+                                €${((field.sellPrice - field.buyPrice) * field.quantity).toFixed(2)}
+                            </strong>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Update product field
+        function updateProductField(input) {
+            const id = parseFloat(input.dataset.id);
+            const field = input.dataset.field;
+            const value = input.value;
+            
+            const product = productFields.find(p => p.id === id);
+            if (product) {
+                product[field] = value;
+                renderProductFields();
+            }
+        }
+
+        // Create order
+        function createOrder() {
+            const orderNum = document.getElementById('orderNum').value.trim();
+            const orderDate = document.getElementById('orderDate').value;
+            const supplier = document.getElementById('supplier').value.trim();
+            const receiver = document.getElementById('receiver').value.trim();
+            const destination = document.getElementById('destination').value.trim();
+            const shippingDays = parseInt(document.getElementById('shippingDays').value);
+
+            // Validate main fields
+            const errors = [];
+            if (!orderNum) errors.push('Užsakymo Nr.');
+            if (!orderDate) errors.push('Data');
+            if (!supplier) errors.push('Tiekėjas');
+            if (!receiver) errors.push('Gavėjas');
+            if (!destination) errors.push('Kur plaukia');
+            if (!shippingDays) errors.push('Plaukimo laikas');
+
+            // Validate products
+            const validProducts = [];
+            productFields.forEach((p, index) => {
+                if (!p.product) errors.push(`Prekė ${index + 1}: Pavadinimas`);
+                if (!p.quantity || p.quantity <= 0) errors.push(`Prekė ${index + 1}: Kiekis`);
+                if (!p.buyPrice || parseFloat(p.buyPrice) < 0) errors.push(`Prekė ${index + 1}: Pirkimo kaina`);
+                if (!p.sellPrice || parseFloat(p.sellPrice) < 0) errors.push(`Prekė ${index + 1}: Pardavimo kaina`);
+                
+                if (p.product && p.quantity && p.buyPrice && p.sellPrice) {
+                    validProducts.push({
+                        product: p.product,
+                        quantity: parseFloat(p.quantity),
+                        unit: p.unit,
+                        buyPrice: parseFloat(p.buyPrice),
+                        sellPrice: parseFloat(p.sellPrice)
+                    });
+                }
+            });
+
+            if (errors.length > 0) {
+                alert('Užpildykite šiuos laukus:\n• ' + errors.join('\n• '));
+                return;
+            }
+
+            if (validProducts.length === 0) {
+                alert('Pridėkite bent vieną prekę!');
+                return;
+            }
+
+            const order = {
+                id: Date.now(),
+                orderNum,
+                orderDate,
+                supplier,
+                receiver,
+                destination,
+                shippingDays,
+                products: validProducts,
+                paidToSupplier: false,
+                paidByReceiver: false,
+                status: 'planuojama',
+                createdAt: new Date().toISOString()
+            };
+
+            orders.push(order);
+            saveData();
+            renderOrders();
+            updateStats();
+            clearForm();
+            alert('✅ Užsakymas sukurtas sėkmingai!');
+        }
+
+        // Calculate profit for order
+        function calcProfit(order) {
+            let cost = 0;
+            let revenue = 0;
+            
+            // Backward compatibility - convert old format to new
+            if (!order.products && order.product) {
+                order.products = [{
+                    product: order.product,
+                    quantity: order.quantity || 0,
+                    unit: order.unit || 'vnt',
+                    buyPrice: order.buyPrice || 0,
+                    sellPrice: order.sellPrice || 0
+                }];
+            }
+            
+            // Make sure products array exists
+            if (!order.products || !Array.isArray(order.products)) {
+                order.products = [];
+            }
+            
+            order.products.forEach(p => {
+                cost += (p.buyPrice || 0) * (p.quantity || 0);
+                revenue += (p.sellPrice || 0) * (p.quantity || 0);
+            });
+            
+            const profit = revenue - cost;
+            const margin = cost > 0 ? (profit / cost * 100) : 0;
+            
+            return { cost, revenue, profit, margin };
+        }
+
+        // Calculate progress
+        function calcProgress(order) {
+            const start = new Date(order.orderDate);
+            const now = new Date();
+            const daysPassed = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+            const progress = Math.min((daysPassed / order.shippingDays) * 100, 100);
+            return { daysPassed, progress: Math.round(progress) };
+        }
+
+        // Filter by time period
+        function filterByTimePeriod(ordersList, period) {
+            if (period === 'all') return ordersList;
+
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            return ordersList.filter(order => {
+                const orderDate = new Date(order.orderDate);
+
+                switch(period) {
+                    case 'today':
+                        return orderDate >= today;
+                    case 'week':
+                        const weekAgo = new Date(today);
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        return orderDate >= weekAgo;
+                    case 'month':
+                        const monthAgo = new Date(today);
+                        monthAgo.setMonth(monthAgo.getMonth() - 1);
+                        return orderDate >= monthAgo;
+                    case 'year':
+                        const yearStart = new Date(now.getFullYear(), 0, 1);
+                        return orderDate >= yearStart;
+                    default:
+                        return true;
+                }
+            });
+        }
+
+        // Clear form
+        function clearForm() {
+            document.getElementById('orderNum').value = '';
+            document.getElementById('orderDate').value = '';
+            document.getElementById('supplier').value = '';
+            document.getElementById('receiver').value = '';
+            document.getElementById('destination').value = '';
+            document.getElementById('shippingDays').value = '';
+            initProductFields();
+        }
+
+        // Toggle payment
+        function togglePayment(orderId, type) {
+            const order = orders.find(o => o.id === orderId);
+            if (!order) return;
+
+            if (type === 'supplier') {
+                order.paidToSupplier = !order.paidToSupplier;
+                if (order.paidToSupplier && order.status === 'planuojama') {
+                    order.status = 'vykdoma';
+                }
+            } else {
+                order.paidByReceiver = !order.paidByReceiver;
+                const prog = calcProgress(order);
+                if (order.paidByReceiver && prog.progress >= 100) {
+                    order.status = 'baigta';
+                }
+            }
+
+            saveData();
+            renderOrders();
+            updateStats();
+        }
+
+        // Delete order
+        function deleteOrder(id) {
+            if (!confirm('Ar tikrai norite ištrinti šį užsakymą?')) return;
+            orders = orders.filter(o => o.id !== id);
+            saveData();
+            renderOrders();
+            updateStats();
+        }
+
+        // Open edit modal
+        function openEditModal(id) {
+            const order = orders.find(o => o.id === id);
+            if (!order) return;
+
+            editingOrderId = id;
+            document.getElementById('editStatus').value = order.status;
+            document.getElementById('editShippingDays').value = order.shippingDays;
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('active');
+            editingOrderId = null;
+        }
+
+        // Save edit
+        function saveEdit() {
+            if (!editingOrderId) return;
+            const order = orders.find(o => o.id === editingOrderId);
+            if (!order) return;
+
+            order.status = document.getElementById('editStatus').value;
+            order.shippingDays = parseInt(document.getElementById('editShippingDays').value);
+
+            saveData();
+            renderOrders();
+            updateStats();
+            closeModal();
+        }
+
+        // Render orders
+        function renderOrders() {
+            const container = document.getElementById('ordersList');
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+            
+            let filtered = orders;
+
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(o => o.status === currentFilter);
+            }
+
+            if (dateFrom) filtered = filtered.filter(o => o.orderDate >= dateFrom);
+            if (dateTo) filtered = filtered.filter(o => o.orderDate <= dateTo);
+
+            filtered.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">📦</div>
+                        <h3>Nėra užsakymų</h3>
+                        <p>Sukurkite naują užsakymą</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(order => {
+                const calc = calcProfit(order);
+                const prog = calcProgress(order);
+                const profitClass = calc.profit > 0 ? 'positive' : calc.profit < 0 ? 'negative' : '';
+                
+                return `
+                    <div class="order-card ${order.status}">
+                        <div class="order-header">
+                            <div class="order-number">${order.orderNum}</div>
+                            <div class="status-badge status-${order.status}">
+                                ${order.status === 'planuojama' ? '🟡 Planuojama' : 
+                                  order.status === 'vykdoma' ? '🔵 Vykdoma' : '🟢 Baigta'}
+                            </div>
+                        </div>
+
+                        <div class="order-details">
+                            <div class="detail-row">
+                                <span>Tiekėjas:</span>
+                                <strong>${order.supplier}</strong>
+                            </div>
+                            <div class="detail-row">
+                                <span>Gavėjas:</span>
+                                <strong>${order.receiver}</strong>
+                            </div>
+                            <div class="detail-row">
+                                <span>Data:</span>
+                                <span>${new Date(order.orderDate).toLocaleDateString('lt-LT')}</span>
+                            </div>
+                        </div>
+
+                        <div class="products-list">
+                            <div class="products-list-title">📦 Prekės (${order.products ? order.products.length : 0})</div>
+                            ${order.products && order.products.length > 0 ? order.products.map(p => `
+                                <div class="product-line">
+                                    <strong>${p.product || 'N/A'}</strong>: ${p.quantity || 0} ${p.unit || 'vnt'} × €${(p.buyPrice || 0).toFixed(2)} → €${(p.sellPrice || 0).toFixed(2)}
+                                    <span style="color: ${((p.sellPrice || 0) - (p.buyPrice || 0)) > 0 ? '#28a745' : '#dc3545'}; font-weight: 600;">
+                                        (${((p.sellPrice || 0) - (p.buyPrice || 0)) > 0 ? '+' : ''}€${(((p.sellPrice || 0) - (p.buyPrice || 0)) * (p.quantity || 0)).toFixed(2)})
+                                    </span>
+                                </div>
+                            `).join('') : '<div class="product-line">Nėra prekių</div>'}
+                        </div>
+
+                        <div class="shipment-info">
+                            <div class="detail-row">
+                                <span>📍 Kryptis:</span>
+                                <strong>${order.destination}</strong>
+                            </div>
+                            <div class="shipment-progress">
+                                <span class="progress-text">${prog.daysPassed} / ${order.shippingDays} d.</span>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${prog.progress}%"></div>
+                                </div>
+                                <span class="progress-text">${prog.progress}%</span>
+                            </div>
+                        </div>
+
+                        <div class="payment-section">
+                            <div class="payment-badge ${order.paidToSupplier ? 'paid' : 'unpaid'}"
+                                 onclick="togglePayment(${order.id}, 'supplier')">
+                                ${order.paidToSupplier ? '✅' : '❌'} Apmokėta tiekėjui
+                            </div>
+                            <div class="payment-badge ${order.paidByReceiver ? 'paid' : 'unpaid'}"
+                                 onclick="togglePayment(${order.id}, 'receiver')">
+                                ${order.paidByReceiver ? '✅' : '❌'} Gauta iš pirkėjo
+                            </div>
+                        </div>
+
+                        <div class="profit-box">
+                            <div class="profit-row">
+                                <span class="profit-label">Pirkimas:</span>
+                                <span class="profit-value">€${calc.cost.toFixed(2)}</span>
+                            </div>
+                            <div class="profit-row">
+                                <span class="profit-label">Pardavimas:</span>
+                                <span class="profit-value">€${calc.revenue.toFixed(2)}</span>
+                            </div>
+                            <div class="profit-row">
+                                <span class="profit-label">Pelnas:</span>
+                                <span class="profit-value ${profitClass}">
+                                    ${calc.profit > 0 ? '+' : ''}€${calc.profit.toFixed(2)}
+                                </span>
+                            </div>
+                            <div class="profit-row">
+                                <span class="profit-label">Marža:</span>
+                                <span class="profit-value ${profitClass}">
+                                    ${calc.margin > 0 ? '+' : ''}${calc.margin.toFixed(1)}%
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="actions">
+                            <button class="btn-small btn-edit" onclick="openEditModal(${order.id})">
+                                ✏️ Keisti
+                            </button>
+                            <button class="btn-small btn-delete" onclick="deleteOrder(${order.id})">
+                                🗑️ Trinti
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update stats
+        function updateStats() {
+            const filteredOrders = filterByTimePeriod(orders, currentTimePeriod);
+
+            const planned = filteredOrders.filter(o => o.status === 'planuojama').length;
+            const active = filteredOrders.filter(o => o.status === 'vykdoma').length;
+            const completed = filteredOrders.filter(o => o.status === 'baigta').length;
+            
+            let totalProfit = 0;
+            let totalCost = 0;
+            
+            filteredOrders.forEach(order => {
+                const calc = calcProfit(order);
+                totalProfit += calc.profit;
+                totalCost += calc.cost;
+            });
+            
+            const avgMargin = totalCost > 0 ? (totalProfit / totalCost * 100) : 0;
+
+            document.getElementById('statPlanned').textContent = planned;
+            document.getElementById('statActive').textContent = active;
+            document.getElementById('statCompleted').textContent = completed;
+            document.getElementById('statTotal').textContent = filteredOrders.length;
+            document.getElementById('statProfit').textContent = `€${totalProfit.toFixed(2)}`;
+            document.getElementById('statMargin').textContent = `${avgMargin.toFixed(1)}%`;
+        }
+
+        // Save/Load data
+        function saveData() {
+            localStorage.setItem('ordersData', JSON.stringify(orders));
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('ordersData');
+            if (saved) {
+                try {
+                    orders = JSON.parse(saved);
+                    
+                    // Migrate old format to new format
+                    let migrated = false;
+                    orders = orders.map(order => {
+                        if (!order.products && order.product) {
+                            migrated = true;
+                            return {
+                                ...order,
+                                products: [{
+                                    product: order.product,
+                                    quantity: order.quantity || 0,
+                                    unit: order.unit || 'vnt',
+                                    buyPrice: order.buyPrice || 0,
+                                    sellPrice: order.sellPrice || 0
+                                }]
+                            };
+                        }
+                        return order;
+                    });
+                    
+                    // Save migrated data
+                    if (migrated) {
+                        console.log('✅ Migrated old orders to new format');
+                        saveData();
+                    }
+                } catch (e) {
+                    console.error('Error loading orders:', e);
+                    orders = [];
+                }
+            }
+            renderOrders();
+            updateStats();
+        }
+
+        // Event listeners
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentFilter = this.dataset.filter;
+                renderOrders();
+            });
+        });
+
+        document.querySelectorAll('.time-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentTimePeriod = this.dataset.period;
+                updateStats();
+            });
+        });
+
+        document.getElementById('filterDateFrom').addEventListener('change', renderOrders);
+        document.getElementById('filterDateTo').addEventListener('change', renderOrders);
+
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', function() {
+            initProductFields();
+            loadData();
+            document.getElementById('orderDate').valueAsDate = new Date();
+            console.log('✅ Sistema įkrauta');
+        });
+    </script>
+</body>
+</html>
