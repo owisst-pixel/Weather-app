@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kuro Kainos Lietuvoje</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0e0f;
+    --surface: #111518;
+    --card: #161c1f;
+    --border: #1e2830;
+    --accent: #e8f542;
+    --accent2: #42f5c8;
+    --accent3: #f54242;
+    --text: #d4dde0;
+    --muted: #4a5a60;
+    --highlight: #2a3840;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,245,66,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,245,66,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    padding: 40px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .logo-block { display: flex; align-items: flex-end; gap: 16px; }
+
+  .logo-icon {
+    width: 52px; height: 52px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    clip-path: polygon(0 0, 85% 0, 100% 15%, 100% 100%, 0 100%);
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    color: #fff;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .header-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: right;
+    line-height: 1.7;
+  }
+
+  #live-time {
+    color: var(--accent2);
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  /* Search bar */
+  .search-section {
+    margin-bottom: 36px;
+  }
+
+  .search-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    flex: 1;
+    min-width: 220px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    padding: 13px 18px;
+    outline: none;
+    transition: border-color 0.2s;
+    clip-path: polygon(0 0, 98% 0, 100% 8%, 100% 100%, 0 100%);
+  }
+
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+
+  .btn-search {
+    background: var(--accent);
+    color: #0a0e0f;
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.1em;
+    padding: 14px 28px;
+    cursor: pointer;
+    transition: all 0.15s;
+    clip-path: polygon(0 0, 92% 0, 100% 20%, 100% 100%, 0 100%);
+    white-space: nowrap;
+  }
+
+  .btn-search:hover { background: #d4e03a; transform: translateY(-1px); }
+  .btn-search:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-refresh {
+    background: transparent;
+    color: var(--accent2);
+    border: 1px solid var(--accent2);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    padding: 13px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-refresh:hover { background: rgba(66,245,200,0.08); }
+
+  /* Filter tabs */
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-right: 4px;
+  }
+
+  .filter-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+
+  .filter-btn.active {
+    background: var(--highlight);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .filter-btn:hover:not(.active) {
+    border-color: var(--muted);
+    color: var(--text);
+  }
+
+  /* Summary cards */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+
+  .summary-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-color, var(--accent));
+  }
+
+  .summary-card:hover { border-color: var(--accent-color, var(--accent)); }
+
+  .card-type {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .card-price {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.4rem;
+    color: var(--accent-color, var(--accent));
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+
+  .card-unit {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .card-change {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .change-up { color: var(--accent3); }
+  .change-down { color: var(--accent2); }
+  .change-flat { color: var(--muted); }
+
+  /* Results area */
+  .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .results-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.08em;
+    color: var(--text);
+  }
+
+  .results-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  /* Station cards */
+  .stations-grid {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 48px;
+  }
+
+  .station-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 20px;
+    align-items: center;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    animation: slideIn 0.3s ease forwards;
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  @keyframes slideIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .station-card:hover {
+    border-color: var(--highlight);
+    background: #1a2226;
+  }
+
+  .station-card::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--brand-color, var(--muted));
+    opacity: 0.7;
+  }
+
+  .station-logo {
+    width: 48px; height: 48px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--brand-color, var(--muted));
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+
+  .station-info { min-width: 0; }
+
+  .station-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #fff;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .station-address {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .station-prices {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .price-pill {
+    text-align: center;
+    min-width: 72px;
+  }
+
+  .price-pill-type {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .price-pill-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.45rem;
+    letter-spacing: 0.05em;
+    color: var(--pill-color, var(--text));
+  }
+
+  .price-pill-value.best { color: var(--accent2); }
+  .price-pill-value.worst { color: var(--accent3); }
+
+  /* Loading / status */
+  .status-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 60px 24px;
+    text-align: center;
+  }
+
+  .spinner {
+    width: 40px; height: 40px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .status-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .status-text strong { color: var(--accent); }
+
+  /* AI analysis panel */
+  .analysis-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    padding: 24px;
+    margin-bottom: 32px;
+    display: none;
+  }
+
+  .analysis-panel.visible { display: block; }
+
+  .analysis-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    color: var(--accent2);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .analysis-label::before {
+    content: '▶';
+    font-size: 0.6rem;
+  }
+
+  .analysis-text {
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.75;
+    white-space: pre-wrap;
+  }
+
+  /* Chart area */
+  .chart-section {
+    margin-bottom: 40px;
+  }
+
+  .chart-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .chart-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .chart-row {
+    display: grid;
+    grid-template-columns: 100px 1fr auto;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .chart-brand {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .chart-bar-wrap {
+    background: var(--surface);
+    height: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .chart-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    opacity: 0.7;
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    width: 0;
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+  }
+
+  .chart-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    color: var(--accent);
+    min-width: 60px;
+    text-align: right;
+  }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .footer-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .source-badge {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  .blink {
+    animation: blink 1.4s step-end infinite;
+  }
+
+  @keyframes blink { 50% { opacity: 0; } }
+
+  @media (max-width: 640px) {
+    .station-card {
+      grid-template-columns: auto 1fr;
+    }
+    .station-prices {
+      grid-column: 1 / -1;
+      justify-content: flex-start;
+    }
+    .chart-row {
+      grid-template-columns: 70px 1fr auto;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header>
+    <div class="header-inner">
+      <div class="logo-block">
+        <div class="logo-icon">⛽</div>
+        <div>
+          <h1>KURO <span>KAINOS</span></h1>
+          <div style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);letter-spacing:0.1em;">LIETUVA · REALIU LAIKU</div>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div id="live-time">--:--:--</div>
+        <div>DUOMENYS: INTERNETO PAIEŠKA + AI</div>
+        <div style="color:var(--accent);margin-top:2px;">● <span id="data-status">LAUKIAMA</span></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="search-section">
+    <span class="search-label">// IEŠKOTI KURO KAINŲ PAGAL MIESTĄ AR ADRESĄ</span>
+    <div class="search-row">
+      <input type="text" class="search-input" id="location-input"
+        placeholder="pvz. Vilnius, Kaunas, Klaipėda..." value="Lietuva">
+      <select class="search-input" id="fuel-select" style="flex:0;min-width:160px;cursor:pointer;">
+        <option value="all">Visi kurai</option>
+        <option value="95">Benzinas 95</option>
+        <option value="98">Benzinas 98</option>
+        <option value="diesel">Dyzelis</option>
+        <option value="lpg">Dujos (LPG)</option>
+      </select>
+      <button class="btn-search" id="search-btn" onclick="fetchFuelPrices()">IEŠKOTI</button>
+      <button class="btn-refresh" onclick="fetchFuelPrices()">↻ ATNAUJINTI</button>
+    </div>
+  </section>
+
+  <div class="filter-row">
+    <span class="filter-label">RODYTI:</span>
+    <button class="filter-btn active" onclick="setFilter('all', this)">Visi</button>
+    <button class="filter-btn" onclick="setFilter('circle', this)">Circle K</button>
+    <button class="filter-btn" onclick="setFilter('neste', this)">Neste</button>
+    <button class="filter-btn" onclick="setFilter('lukoil', this)">Lukoil</button>
+    <button class="filter-btn" onclick="setFilter('viada', this)">Viada</button>
+    <button class="filter-btn" onclick="setFilter('other', this)">Kiti</button>
+  </div>
+
+  <div class="summary-grid" id="summary-grid">
+    <div class="summary-card" style="--accent-color: #e8f542;">
+      <div class="card-type">// BENZINAS 95</div>
+      <div class="card-price" id="avg-95">—</div>
+      <div class="card-unit">€/L · VIDURKIS</div>
+      <div class="card-change" id="chg-95"><span class="change-flat">— —</span></div>
+    </div>
+    <div class="summary-card" style="--accent-color: #f5a742;">
+      <div class="card-type">// BENZINAS 98</div>
+      <div class="card-price" id="avg-98">—</div>
+      <div class="card-unit">€/L · VIDURKIS</div>
+      <div class="card-change" id="chg-98"><span class="change-flat">— —</span></div>
+    </div>
+    <div class="summary-card" style="--accent-color: #42c8f5;">
+      <div class="card-type">// DYZELIS</div>
+      <div class="card-price" id="avg-diesel">—</div>
+      <div class="card-unit">€/L · VIDURKIS</div>
+      <div class="card-change" id="chg-diesel"><span class="change-flat">— —</span></div>
+    </div>
+    <div class="summary-card" style="--accent-color: #c842f5;">
+      <div class="card-type">// DUJOS LPG</div>
+      <div class="card-price" id="avg-lpg">—</div>
+      <div class="card-unit">€/L · VIDURKIS</div>
+      <div class="card-change" id="chg-lpg"><span class="change-flat">— —</span></div>
+    </div>
+  </div>
+
+  <div class="analysis-panel" id="analysis-panel">
+    <div class="analysis-label">AI ANALIZĖ · RINKOS APŽVALGA</div>
+    <div class="analysis-text" id="analysis-text"></div>
+  </div>
+
+  <div class="chart-section" id="chart-section" style="display:none;">
+    <div class="chart-title">// KAINŲ PALYGINIMAS PAGAL TINKLĄ (DYZELIS)</div>
+    <div class="chart-bars" id="chart-bars"></div>
+  </div>
+
+  <div class="results-header">
+    <div class="results-title">// DEGALINĖS</div>
+    <div class="results-count" id="results-count">—</div>
+  </div>
+
+  <div id="stations-container">
+    <div class="status-box">
+      <div class="spinner"></div>
+      <div class="status-text">
+        Paspauskite <strong>IEŠKOTI</strong> kad gauti<br>
+        realius kainų duomenis iš interneto<span class="blink">_</span>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-text">© 2025 KURO KAINOS LT · DUOMENYS REALIUOJU LAIKU</div>
+    <div class="source-badge">POWERED BY CLAUDE AI + WEB SEARCH</div>
+  </footer>
+
+</div>
+
+<script>
+// Live clock
+function updateClock() {
+  const now = new Date();
+  document.getElementById('live-time').textContent =
+    now.toLocaleTimeString('lt-LT', { hour12: false });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+let currentFilter = 'all';
+let allStations = [];
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderStations();
+}
+
+const BRAND_COLORS = {
+  'Circle K': '#e8f542',
+  'Neste': '#ff6b00',
+  'Lukoil': '#e00',
+  'Viada': '#005baa',
+  'Rimi': '#e40520',
+  'Maxima': '#003087',
+  'default': '#4a5a60'
+};
+
+const BRAND_FILTER = {
+  'circle': 'Circle K',
+  'neste': 'Neste',
+  'lukoil': 'Lukoil',
+  'viada': 'Viada',
+};
+
+async function fetchFuelPrices() {
+  const location = document.getElementById('location-input').value.trim() || 'Lietuva';
+  const fuelType = document.getElementById('fuel-select').value;
+  const btn = document.getElementById('search-btn');
+
+  btn.disabled = true;
+  btn.textContent = 'IEŠKOMA...';
+  document.getElementById('data-status').textContent = 'JUNGIAMASI';
+  document.getElementById('analysis-panel').classList.remove('visible');
+  document.getElementById('chart-section').style.display = 'none';
+
+  document.getElementById('stations-container').innerHTML = `
+    <div class="status-box">
+      <div class="spinner"></div>
+      <div class="status-text">
+        Ieškoma kuro kainų duomenų internete<br>
+        Vieta: <strong>${location}</strong> · Kuras: <strong>${fuelType === 'all' ? 'Visi' : fuelType}</strong><span class="blink">_</span>
+      </div>
+    </div>`;
+
+  const fuelQuery = fuelType === 'all' ? 'benzinas dyzelis' : fuelType;
+  const prompt = `Tu esi kuro kainų ekspertas Lietuvoje. Ieškok internete ir surink TIKRAS, DABARTINES kuro kainas Lietuvoje ${location} regione. 
+
+Ieškok informacijos iš šių šaltinių: GlobalPetrolPrices.com, e-petrol.lt, benzinas.lt, degalai.lt, kuraskainoms.lt, Circle K, Neste, Lukoil, Viada oficialūs puslapiai.
+
+Pateik duomenis JSON formatu TIKTAI, be jokio teksto prieš ar po JSON:
+{
+  "updated": "2025-01-XX",
+  "region": "${location}",
+  "summary": {
+    "avg_95": 1.XXX,
+    "avg_98": 1.XXX,
+    "avg_diesel": 1.XXX,
+    "avg_lpg": 0.XXX,
+    "trend_95": "up/down/flat",
+    "trend_diesel": "up/down/flat",
+    "trend_98": "up/flat/down",
+    "trend_lpg": "up/flat/down",
+    "change_95": "+0.0X",
+    "change_98": "+0.0X",
+    "change_diesel": "-0.0X",
+    "change_lpg": "+0.0X"
+  },
+  "stations": [
+    {
+      "name": "Circle K",
+      "address": "Tikras adresas ${location}",
+      "brand": "Circle K",
+      "price_95": 1.XXX,
+      "price_98": 1.XXX,
+      "price_diesel": 1.XXX,
+      "price_lpg": 0.XXX,
+      "is_cheapest_diesel": false
+    }
+  ],
+  "analysis": "Trumpa rinkos analizė lietuviškai - kokios tendencijos, kas pigiausia, kodėl kainos keitėsi"
+}
+
+Įtrauk bent 6-8 skirtingas degalines ${location} su tiksliais adresais ir tikromis kainomis. Kainos turi būti realistiškos 2024-2025 metams Lietuvai (95: ~1.40-1.65€/L, dyzelis: ~1.30-1.55€/L, LPG: ~0.55-0.70€/L). Naudok web_search įrankį rasti tikslias dabartines kainas.`;
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "
