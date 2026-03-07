@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commodities RSI · MFI Tracker</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg:        #f5f0e8;
+  --surface:   #fffdf8;
+  --surface2:  #f0ebe0;
+  --border:    #ddd8cc;
+  --ink:       #1a1710;
+  --ink2:      #5a5545;
+  --ink3:      #9a9080;
+  --gold:      #c8921a;
+  --gold-lt:   #f5dfa0;
+  --red:       #c0392b;
+  --red-lt:    #fde8e6;
+  --green:     #1a7a4a;
+  --green-lt:  #e0f5ea;
+  --wheat:     #c8921a;
+  --metal:     #607080;
+  --energy:    #8b4513;
+  --soft:      #6b4c82;
+  --shadow:    0 2px 12px rgba(26,23,16,0.08);
+  --shadow-lg: 0 8px 32px rgba(26,23,16,0.12);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Grain texture overlay */
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:1000;
+  opacity:0.5;
+}
+
+.page { max-width:1180px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+
+/* ── Header ── */
+header {
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  padding-bottom:1.5rem;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom:2.5rem;
+}
+
+.masthead h1 {
+  font-family:'DM Serif Display', serif;
+  font-size:3rem;
+  line-height:1;
+  letter-spacing:-0.02em;
+  color:var(--ink);
+}
+
+.masthead h1 em {
+  font-style:italic;
+  color:var(--gold);
+}
+
+.masthead .sub {
+  font-family:'DM Mono', monospace;
+  font-size:0.65rem;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  color:var(--ink3);
+  margin-top:4px;
+}
+
+.header-right { text-align:right; }
+
+.live-badge {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-family:'DM Mono', monospace;
+  font-size:0.7rem;
+  letter-spacing:0.1em;
+  color:var(--ink2);
+  margin-bottom:6px;
+}
+
+.live-dot {
+  width:7px; height:7px;
+  border-radius:50%;
+  background:var(--green);
+  animation:blink 2s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+.interval-group {
+  display:flex;
+  gap:4px;
+}
+
+.int-btn {
+  background:transparent;
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:3px 9px;
+  font-family:'DM Mono', monospace;
+  font-size:0.7rem;
+  cursor:pointer;
+  color:var(--ink2);
+  transition:all 0.15s;
+}
+.int-btn:hover { border-color:var(--gold); color:var(--gold); }
+.int-btn.active { background:var(--ink); color:var(--bg); border-color:var(--ink); }
+
+/* ── Thresholds bar ── */
+.thresholds-bar {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:1rem 1.5rem;
+  display:flex;
+  align-items:center;
+  gap:2rem;
+  margin-bottom:2rem;
+  flex-wrap:wrap;
+  box-shadow:var(--shadow);
+}
+
+.th-group {
+  display:flex;
+  align-items:center;
+  gap:0.75rem;
+}
+
+.th-label {
+  font-family:'DM Mono', monospace;
+  font-size:0.65rem;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--ink3);
+  white-space:nowrap;
+}
+
+.th-pair {
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.th-sub {
+  font-size:0.72rem;
+  color:var(--ink3);
+}
+
+.th-sub.ob { color:var(--red); }
+.th-sub.os { color:var(--green); }
+
+.th-input {
+  width:52px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:5px;
+  padding:3px 7px;
+  font-family:'DM Mono', monospace;
+  font-size:0.8rem;
+  color:var(--ink);
+  text-align:center;
+  outline:none;
+  transition:border-color 0.15s;
+}
+.th-input:focus { border-color:var(--gold); }
+
+.th-divider {
+  width:1px;
+  height:28px;
+  background:var(--border);
+}
+
+.notif-btn {
+  margin-left:auto;
+  background:transparent;
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:5px 14px;
+  font-family:'DM Mono', monospace;
+  font-size:0.68rem;
+  letter-spacing:0.08em;
+  cursor:pointer;
+  color:var(--ink2);
+  transition:all 0.2s;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.notif-btn:hover { border-color:var(--gold); color:var(--gold); }
+.notif-btn.enabled { background:var(--green-lt); border-color:var(--green); color:var(--green); }
+
+/* ── Category sections ── */
+.category {
+  margin-bottom:2.5rem;
+}
+
+.cat-header {
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  margin-bottom:1rem;
+}
+
+.cat-icon {
+  width:36px; height:36px;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1.1rem;
+  flex-shrink:0;
+}
+
+.cat-icon.grains   { background:#fff3d0; }
+.cat-icon.metals   { background:#e8eef5; }
+.cat-icon.energy   { background:#fde8df; }
+.cat-icon.soft     { background:#f0e8f8; }
+
+.cat-title {
+  font-family:'DM Serif Display', serif;
+  font-size:1.25rem;
+  color:var(--ink);
+}
+
+.cat-count {
+  font-family:'DM Mono', monospace;
+  font-size:0.65rem;
+  color:var(--ink3);
+  margin-left:auto;
+  letter-spacing:0.1em;
+}
+
+.cat-line {
+  flex:1;
+  height:1px;
+  background:var(--border);
+}
+
+/* ── Commodity Cards Grid ── */
+.cards-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(230px, 1fr));
+  gap:1rem;
+}
+
+.comm-card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:1.25rem;
+  box-shadow:var(--shadow);
+  transition:transform 0.2s, box-shadow 0.2s, border-color 0.3s;
+  position:relative;
+  overflow:hidden;
+  cursor:default;
+  animation: fadeUp 0.4s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(12px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.comm-card:hover {
+  transform:translateY(-2px);
+  box-shadow:var(--shadow-lg);
+}
+
+.comm-card::after {
+  content:'';
+  position:absolute;
+  bottom:0; left:0; right:0;
+  height:3px;
+  background:var(--border);
+  transition:background 0.3s, opacity 0.3s;
+}
+
+.comm-card.ob::after { background:var(--red); }
+.comm-card.os::after { background:var(--green); }
+.comm-card.ob { border-color:rgba(192,57,43,0.25); background:linear-gradient(160deg, #fffdf8, #fdf5f4); }
+.comm-card.os { border-color:rgba(26,122,74,0.25); background:linear-gradient(160deg, #fffdf8, #f3fbf6); }
+
+.card-top {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  margin-bottom:1rem;
+}
+
+.card-name {
+  font-family:'DM Serif Display', serif;
+  font-size:1.1rem;
+  line-height:1.1;
+}
+
+.card-ticker {
+  font-family:'DM Mono', monospace;
+  font-size:0.6rem;
+  color:var(--ink3);
+  letter-spacing:0.1em;
+  margin-top:2px;
+}
+
+.card-price {
+  text-align:right;
+}
+
+.price-val {
+  font-family:'DM Mono', monospace;
+  font-size:0.85rem;
+  font-weight:500;
+  color:var(--ink);
+}
+
+.price-chg {
+  font-family:'DM Mono', monospace;
+  font-size:0.65rem;
+  margin-top:2px;
+}
+
+.price-chg.up { color:var(--green); }
+.price-chg.dn { color:var(--red); }
+
+/* RSI & MFI indicators */
+.indicators {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0.75rem;
+}
+
+.ind {
+  background:var(--surface2);
+  border-radius:8px;
+  padding:0.6rem 0.75rem;
+}
+
+.ind-lbl {
+  font-family:'DM Mono', monospace;
+  font-size:0.58rem;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--ink3);
+  margin-bottom:4px;
+}
+
+.ind-val {
+  font-family:'DM Mono', monospace;
+  font-size:1.3rem;
+  font-weight:500;
+  line-height:1;
+  transition:color 0.3s;
+}
+
+.ind-val.neutral { color:var(--ink); }
+.ind-val.ob      { color:var(--red); }
+.ind-val.os      { color:var(--green); }
+.ind-val.mid     { color:var(--gold); }
+.ind-val.loading { color:var(--ink3); font-size:0.7rem; padding-top:4px; }
+
+.ind-bar-wrap {
+  height:3px;
+  background:var(--border);
+  border-radius:2px;
+  margin-top:5px;
+  overflow:hidden;
+}
+
+.ind-bar-fill {
+  height:100%;
+  border-radius:2px;
+  transition:width 1s cubic-bezier(.4,0,.2,1), background 0.3s;
+}
+
+.bar-neutral { background:var(--gold); }
+.bar-ob      { background:var(--red); }
+.bar-os      { background:var(--green); }
+
+/* Alert chip */
+.alert-chip {
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  font-family:'DM Mono', monospace;
+  font-size:0.58rem;
+  letter-spacing:0.08em;
+  padding:2px 7px;
+  border-radius:4px;
+  margin-top:0.75rem;
+  font-weight:500;
+}
+
+.alert-chip.ob { background:var(--red-lt); color:var(--red); }
+.alert-chip.os { background:var(--green-lt); color:var(--green); }
+
+/* ── Alerts Log ── */
+.alerts-section {
+  margin-top:3rem;
+  padding-top:1.5rem;
+  border-top:1px solid var(--border);
+}
+
+.alerts-title {
+  font-family:'DM Serif Display', serif;
+  font-size:1.5rem;
+  margin-bottom:1.25rem;
+  display:flex;
+  align-items:center;
+  gap:0.75rem;
+}
+
+.alert-badge-count {
+  background:var(--red);
+  color:white;
+  font-family:'DM Mono', monospace;
+  font-size:0.6rem;
+  padding:2px 8px;
+  border-radius:20px;
+  vertical-align:middle;
+}
+
+.log-wrap {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+
+.log-item {
+  display:grid;
+  grid-template-columns:auto 1fr auto auto;
+  align-items:center;
+  gap:1rem;
+  padding:0.85rem 1.25rem;
+  border-bottom:1px solid var(--border);
+  animation:slideRight 0.3s ease;
+}
+
+@keyframes slideRight {
+  from { opacity:0; transform:translateX(-8px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+
+.log-item:last-child { border-bottom:none; }
+
+.log-badge {
+  font-family:'DM Mono', monospace;
+  font-size:0.58rem;
+  letter-spacing:0.1em;
+  padding:2px 8px;
+  border-radius:4px;
+  white-space:nowrap;
+}
+
+.log-badge.ob { background:var(--red-lt); color:var(--red); }
+.log-badge.os { background:var(--green-lt); color:var(--green); }
+
+.log-msg { font-size:0.82rem; color:var(--ink2); }
+.log-msg strong { color:var(--ink); font-weight:600; }
+
+.log-ind {
+  font-family:'DM Mono', monospace;
+  font-size:0.75rem;
+  color:var(--ink3);
+}
+
+.log-time {
+  font-family:'DM Mono', monospace;
+  font-size:0.62rem;
+  color:var(--ink3);
+  white-space:nowrap;
+}
+
+.log-empty {
+  padding:2rem;
+  text-align:center;
+  font-family:'DM Mono', monospace;
+  font-size:0.75rem;
+  color:var(--ink3);
+  letter-spacing:0.08em;
+}
+
+/* ── Footer refresh ── */
+.footer-bar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:2rem;
+  padding-top:1rem;
+  border-top:1px solid var(--border);
+}
+
+.last-update {
+  font-family:'DM Mono', monospace;
+  font-size:0.65rem;
+  color:var(--ink3);
+  letter-spacing:0.08em;
+}
+
+.refresh-all-btn {
+  background:var(--ink);
+  color:var(--bg);
+  border:none;
+  border-radius:7px;
+  padding:7px 18px;
+  font-family:'DM Sans', sans-serif;
+  font-weight:600;
+  font-size:0.8rem;
+  cursor:pointer;
+  transition:all 0.2s;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.refresh-all-btn:hover { background:var(--gold); color:var(--ink); }
+.refresh-all-btn:disabled { opacity:0.5; cursor:default; }
+
+/* ── Progress bar ── */
+.progress-wrap {
+  margin-top:1rem;
+  display:flex;
+  align-items:center;
+  gap:0.75rem;
+}
+.progress-bar-bg {
+  flex:1;
+  height:4px;
+  background:var(--border);
+  border-radius:2px;
+  overflow:hidden;
+}
+.progress-bar-fill {
+  height:100%;
+  background:var(--gold);
+  border-radius:2px;
+  width:0%;
+  transition:width 0.3s ease;
+}
+.progress-label {
+  font-family:'DM Mono', monospace;
+  font-size:0.7rem;
+  color:var(--ink3);
+  min-width:36px;
+  text-align:right;
+}
+
+.spin { display:inline-block; animation:rotate 1s linear infinite; }
+@keyframes rotate { to { transform:rotate(360deg); } }
+
+@media (max-width:600px) {
+  .masthead h1 { font-size:2rem; }
+  .thresholds-bar { gap:1rem; }
+  .th-divider { display:none; }
+  .notif-btn { margin-left:0; }
+  .log-item { grid-template-columns:auto 1fr; }
+  .log-ind, .log-time { display:none; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <header>
+    <div class="masthead">
+      <h1>Commodity <em>Pulse</em></h1>
+      <div class="sub">RSI · MFI · Realaus laiko stebėjimas</div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge"><div class="live-dot"></div> Yahoo Finance</div>
+      <div class="interval-group" id="intervalGroup">
+        <button class="int-btn" data-v="30m">30min</button>
+        <button class="int-btn" data-v="1d">1D</button>
+        <button class="int-btn active" data-v="1wk">1S</button>
+        <button class="int-btn" data-v="1mo">1M</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Thresholds -->
+  <div class="thresholds-bar">
+    <div class="th-group">
+      <span class="th-label">RSI</span>
+      <div class="th-pair">
+        <span class="th-sub ob">↑</span>
+        <input class="th-input" id="rsiOB" type="number" value="70" min="50" max="100">
+      </div>
+      <div class="th-pair">
+        <span class="th-sub os">↓</span>
+        <input class="th-input" id="rsiOS" type="number" value="30" min="0" max="50">
+      </div>
+    </div>
+    <div class="th-divider"></div>
+    <div class="th-group">
+      <span class="th-label">MFI</span>
+      <div class="th-pair">
+        <span class="th-sub ob">↑</span>
+        <input class="th-input" id="mfiOB" type="number" value="80" min="50" max="100">
+      </div>
+      <div class="th-pair">
+        <span class="th-sub os">↓</span>
+        <input class="th-input" id="mfiOS" type="number" value="20" min="0" max="50">
+      </div>
+    </div>
+    <div class="th-divider"></div>
+    <button class="notif-btn" id="notifBtn" onclick="toggleNotifications()">
+      <span id="notifIcon">🔔</span>
+      <span id="notifText">Pranešimai</span>
+    </button>
+  </div>
+
+  <!-- Categories rendered by JS -->
+  <div id="mainContent"></div>
+
+  <!-- Alerts log -->
+  <div class="alerts-section">
+    <div class="alerts-title">
+      Įspėjimų žurnalas
+      <span class="alert-badge-count" id="alertCount">0</span>
+    </div>
+    <div class="log-wrap" id="alertsLog">
+      <div class="log-empty">— Kol kas nėra įspėjimų —</div>
+    </div>
+  </div>
+
+
+  <div class="progress-wrap" id="progressWrap" style="display:none;">
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+    <div class="progress-label" id="progressLabel">0%</div>
+  </div>
+  <div class="footer-bar">
+    <div class="last-update" id="lastUpdate">Neatnaujinta</div>
+    <button class="refresh-all-btn" id="refreshBtn" onclick="refreshAll()">
+      <span id="refreshIcon">↻</span> Atnaujinti viską
+    </button>
+  </div>
+
+</div>
+
+<script>
+// ===== COMMODITIES DATA =====
+const CATEGORIES = [
+  {
+    id: 'grains', label: 'Grūdai', icon: '🌾', cls: 'grains',
+    items: [
+      { name: 'Wheat',    ticker: 'ZW=F',  display: 'Kviečiai' },
+      { name: 'Corn',     ticker: 'ZC=F',  display: 'Kukurūzai' },
+      { name: 'Soybeans', ticker: 'ZS=F',  display: 'Sojos pupelės' },
+      { name: 'Oats',     ticker: 'ZO=F',  display: 'Avižos' },
+    ]
+  },
+  {
+    id: 'metals', label: 'Metalai', icon: '🪙', cls: 'metals',
+    items: [
+      { name: 'Gold',      ticker: 'GC=F',  display: 'Auksas' },
+      { name: 'Silver',    ticker: 'SI=F',  display: 'Sidabras' },
+      { name: 'Platinum',  ticker: 'PL=F',  display: 'Platina' },
+      { name: 'Palladium', ticker: 'PA=F',  display: 'Paladis' },
+    ]
+  },
+  {
+    id: 'energy', label: 'Energija', icon: '⛽', cls: 'energy',
+    items: [
+      { name: 'Crude Oil',     ticker: 'CL=F',  display: 'Žalia Nafta' },
+      { name: 'Natural Gas',   ticker: 'NG=F',  display: 'Gamtinės dujos' },
+      { name: 'Brent Crude',   ticker: 'BZ=F',  display: 'Brent nafta' },
+      { name: 'Heating Oil',   ticker: 'HO=F',  display: 'Kaitinimo alyva' },
+    ]
+  },
+  {
+    id: 'soft', label: 'Soft Commodities', icon: '☕', cls: 'soft',
+    items: [
+      { name: 'Coffee',  ticker: 'KC=F',  display: 'Kava' },
+      { name: 'Sugar',   ticker: 'SB=F',  display: 'Cukrus' },
+      { name: 'Cotton',  ticker: 'CT=F',  display: 'Medvilnė' },
+      { name: 'Cocoa',   ticker: 'CC=F',  display: 'Kakava' },
+    ]
+  }
+];
+
+// ===== STATE =====
+let state = {}; // ticker -> { rsi, mfi, price, change, loading }
+let alertLog = [];
+let notifEnabled = false;
+let currentInterval = '1wk';
+const PROXIES = [
+  (ticker, interval) => `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=${interval}&range=${rangeFor(interval)}&includePrePost=false`,
+  (ticker, interval) => `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=${interval}&range=${rangeFor(interval)}&includePrePost=false`,
+];
+
+function rangeFor(interval) {
+  return { '30m': '60d', '1d': '3mo', '1wk': '2y', '1mo': '5y' }[interval] || '2y';
+}
+
+// ===== INIT =====
+window.onload = () => {
+  renderStructure();
+  setupIntervalButtons();
+  checkNotifPermission();
+  refreshAll();
+  setInterval(refreshAll, 5 * 60 * 1000); // every 5 min
+};
+
+// ===== RENDER STRUCTURE =====
+function renderStructure() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = CATEGORIES.map(cat => `
+    <div class="category" id="cat-${cat.id}">
+      <div class="cat-header">
+        <div class="cat-icon ${cat.cls}">${cat.icon}</div>
+        <div class="cat-title">${cat.label}</div>
+        <div class="cat-line"></div>
+        <div class="cat-count">${cat.items.length} instrumentai</div>
+      </div>
+      <div class="cards-grid">
+        ${cat.items.map(item => renderCard(item, true)).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderCard(item, initial = false) {
+  const s = state[item.ticker];
+  const loading = !s || s.loading;
+  const rsiOB = +document.getElementById('rsiOB').value;
+  const rsiOS = +document.getElementById('rsiOS').value;
+  const mfiOB = +document.getElementById('mfiOB').value;
+  const mfiOS = +document.getElementById('mfiOS').value;
+
+  let alertClass = '';
+  if (s && !loading) {
+    if ((s.rsi !== null && s.rsi >= rsiOB) || (s.mfi !== null && s.mfi >= mfiOB)) alertClass = 'ob';
+    else if ((s.rsi !== null && s.rsi <= rsiOS) || (s.mfi !== null && s.mfi <= mfiOS)) alertClass = 'os';
+  }
+
+  const rsiVal  = loading ? null : s.rsi;
+  const mfiVal  = loading ? null : s.mfi;
+  const rsiCls  = loading ? 'loading' : rsiVal === null ? 'neutral' : rsiVal >= rsiOB ? 'ob' : rsiVal <= rsiOS ? 'os' : rsiVal >= 45 ? 'mid' : 'neutral';
+  const mfiCls  = loading ? 'loading' : mfiVal === null ? 'neutral' : mfiVal >= mfiOB ? 'ob' : mfiVal <= mfiOS ? 'os' : mfiVal >= 45 ? 'mid' : 'neutral';
+  const barCls  = (v, ob, os) => v >= ob ? 'bar-ob' : v <= os ? 'bar-os' : 'bar-neutral';
+
+  const priceStr  = s && s.price ? formatPrice(s.price) : '—';
+  const changeStr = s && s.change !== undefined ? (s.change >= 0 ? '+' : '') + s.change.toFixed(2) + '%' : '';
+  const changeCls = s && s.change >= 0 ? 'up' : 'dn';
+
+  const alertChip = alertClass === 'ob'
+    ? `<div class="alert-chip ob">⚠ Perkautas</div>`
+    : alertClass === 'os'
+    ? `<div class="alert-chip os">▼ Perparduotas</div>`
+    : '';
+
+  const delay = initial ? `animation-delay:${Math.random()*0.3}s` : '';
+
+  return `
+  <div class="comm-card ${alertClass}" id="card-${item.ticker.replace(/[^a-z0-9]/gi,'_')}" style="${delay}">
+    <div class="card-top">
+      <div>
+        <div class="card-name">${item.display}</div>
+        <div class="card-ticker">${item.ticker}</div>
+      </div>
+      <div class="card-price">
+        <div class="price-val">${priceStr}</div>
+        ${changeStr ? `<div class="price-chg ${changeCls}">${changeStr}</div>` : ''}
+      </div>
+    </div>
+    <div class="indicators">
+      <div class="ind">
+        <div class="ind-lbl">RSI (14)</div>
+        <div class="ind-val ${rsiCls}">${loading ? '···' : rsiVal !== null ? rsiVal : '—'}</div>
+        ${!loading && rsiVal !== null ? `<div class="ind-bar-wrap"><div class="ind-bar-fill ${barCls(rsiVal,rsiOB,rsiOS)}" style="width:${rsiVal}%"></div></div>` : ''}
+      </div>
+      <div class="ind">
+        <div class="ind-lbl">MFI (14)</div>
+        <div class="ind-val ${mfiCls}">${loading ? '···' : mfiVal !== null ? mfiVal : '—'}</div>
+        ${!loading && mfiVal !== null ? `<div class="ind-bar-wrap"><div class="ind-bar-fill ${barCls(mfiVal,mfiOB,mfiOS)}" style="width:${mfiVal}%"></div></div>` : ''}
+      </div>
+    </div>
+    ${alertChip}
+  </div>`;
+}
+
+function updateCard(item) {
+  const id = 'card-' + item.ticker.replace(/[^a-z0-9]/gi,'_');
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.outerHTML = renderCard(item);
+}
+
+// ===== FETCH DATA =====
+async function fetchYahoo(ticker, interval) {
+  for (const proxy of PROXIES) {
+    try {
+      const url = proxy(ticker, interval);
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const result = data?.chart?.result?.[0];
+      if (!result) continue;
+      const closes  = result.indicators?.quote?.[0]?.close?.filter(v => v != null) || [];
+      const highs    = result.indicators?.quote?.[0]?.high?.filter(v => v != null) || [];
+      const lows     = result.indicators?.quote?.[0]?.low?.filter(v => v != null) || [];
+      const volumes  = result.indicators?.quote?.[0]?.volume?.filter(v => v != null) || [];
+      if (closes.length < 20) continue;
+
+      const price   = closes[closes.length - 1];
+      const prevClose = closes[closes.length - 2] || price;
+      const change  = ((price - prevClose) / prevClose) * 100;
+      const rsi = calcRSI(closes);
+      const mfi = calcMFI(highs, lows, closes, volumes);
+      return { price, change, rsi, mfi };
+    } catch(e) { /* try next */ }
+  }
+  return null;
+}
+
+// ===== CALCULATIONS =====
+function calcRSI(closes, period = 14) {
+  if (closes.length < period + 1) return null;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i-1];
+    if (d > 0) gains += d; else losses -= d;
+  }
+  let ag = gains / period, al = losses / period;
+  for (let i = period + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i-1];
+    ag = (ag * (period-1) + (d > 0 ? d : 0)) / period;
+    al = (al * (period-1) + (d < 0 ? -d : 0)) / period;
+  }
+  if (al === 0) return 100;
+  return parseFloat((100 - 100 / (1 + ag/al)).toFixed(1));
+}
+
+function calcMFI(highs, lows, closes, volumes, period = 14) {
+  const len = Math.min(highs.length, lows.length, closes.length, volumes.length);
+  if (len < period + 1) return null;
+  let pos = 0, neg = 0;
+  const tp = i => (highs[i] + lows[i] + closes[i]) / 3;
+  for (let i = len - period; i < len; i++) {
+    const mf = tp(i) * (volumes[i] || 0);
+    if (tp(i) >= tp(i-1)) pos += mf; else neg += mf;
+  }
+  if (neg === 0) return 100;
+  return parseFloat((100 - 100 / (1 + pos/neg)).toFixed(1));
+}
+
+// ===== REFRESH =====
+async function refreshAll() {
+  const btn = document.getElementById('refreshBtn');
+  const icon = document.getElementById('refreshIcon');
+  const progressWrap = document.getElementById('progressWrap');
+  const progressFill = document.getElementById('progressFill');
+  const progressLabel = document.getElementById('progressLabel');
+
+  btn.disabled = true;
+  icon.className = 'spin';
+  progressWrap.style.display = 'flex';
+  progressFill.style.width = '0%';
+  progressLabel.textContent = '0%';
+
+  const allItems = CATEGORIES.flatMap(c => c.items);
+  let done = 0;
+  const total = allItems.length;
+
+  const updateProgress = () => {
+    done++;
+    const pct = Math.round((done / total) * 100);
+    progressFill.style.width = pct + '%';
+    progressLabel.textContent = pct + '%';
+  };
+
+  // Mark all loading
+  allItems.forEach(item => {
+    if (!state[item.ticker]) state[item.ticker] = {};
+    state[item.ticker].loading = true;
+    updateCard(item);
+  });
+
+  // Fetch all in parallel
+  await Promise.all(allItems.map(async item => {
+    const result = await fetchYahoo(item.ticker, currentInterval);
+    state[item.ticker] = result
+      ? { ...result, loading: false }
+      : { rsi: null, mfi: null, price: null, change: null, loading: false, error: true };
+    checkItemAlerts(item);
+    updateCard(item);
+    updateProgress();
+  }));
+
+  btn.disabled = false;
+  icon.className = '';
+  document.getElementById('lastUpdate').textContent =
+    'Atnaujinta: ' + new Date().toLocaleTimeString('lt-LT');
+  setTimeout(() => { progressWrap.style.display = 'none'; }, 1500);
+}
+
+// ===== ALERTS =====
+function checkItemAlerts(item) {
+  const s = state[item.ticker];
+  if (!s || s.error) return;
+  const rsiOB = +document.getElementById('rsiOB').value;
+  const rsiOS = +document.getElementById('rsiOS').value;
+  const mfiOB = +document.getElementById('mfiOB').value;
+  const mfiOS = +document.getElementById('mfiOS').value;
+
+  const add = (type, ind, val, limit) => {
+    alertLog.unshift({ type, msg: item.display, ind, val, limit, time: new Date() });
+    if (notifEnabled) {
+      new Notification(`📊 ${item.display}`, {
+        body: `${ind} = ${val} — ${type === 'ob' ? 'Perkautas' : 'Perparduotas'} (riba: ${limit})`
+      });
+    }
+  };
+
+  if (s.rsi !== null) {
+    if (s.rsi >= rsiOB) add('ob', 'RSI', s.rsi, rsiOB);
+    if (s.rsi <= rsiOS) add('os', 'RSI', s.rsi, rsiOS);
+  }
+  if (s.mfi !== null) {
+    if (s.mfi >= mfiOB) add('ob', 'MFI', s.mfi, mfiOB);
+    if (s.mfi <= mfiOS) add('os', 'MFI', s.mfi, mfiOS);
+  }
+  if (alertLog.length > 100) alertLog = alertLog.slice(0, 100);
+  renderAlerts();
+}
+
+function renderAlerts() {
+  const log = document.getElementById('alertsLog');
+  document.getElementById('alertCount').textContent = alertLog.length;
+  if (!alertLog.length) {
+    log.innerHTML = '<div class="log-empty">— Kol kas nėra įspėjimų —</div>';
+    return;
+  }
+  log.innerHTML = alertLog.slice(0, 30).map(a => `
+    <div class="log-item">
+      <span class="log-badge ${a.type}">${a.type === 'ob' ? 'PERKAUTAS' : 'PERPARDUOTAS'}</span>
+      <span class="log-msg"><strong>${a.msg}</strong> ${a.ind} = ${a.val} (riba: ${a.limit})</span>
+      <span class="log-ind">${a.ind}</span>
+      <span class="log-time">${a.time.toLocaleTimeString('lt-LT', {hour:'2-digit',minute:'2-digit'})}</span>
+    </div>
+  `).join('');
+}
+
+// ===== INTERVAL BUTTONS =====
+function setupIntervalButtons() {
+  document.querySelectorAll('.int-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.int-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentInterval = btn.dataset.v;
+      refreshAll();
+    });
+  });
+}
+
+// ===== NOTIFICATIONS =====
+function checkNotifPermission() {
+  if (Notification?.permission === 'granted') {
+    notifEnabled = true;
+    document.getElementById('notifIcon').textContent = '🔔';
+    document.getElementById('notifText').textContent = 'Pranešimai įjungti';
+    document.getElementById('notifBtn').classList.add('enabled');
+  }
+}
+
+async function toggleNotifications() {
+  if (!('Notification' in window)) return alert('Naršyklė nepalaiko pranešimų');
+  if (notifEnabled) {
+    notifEnabled = false;
+    document.getElementById('notifIcon').textContent = '🔔';
+    document.getElementById('notifText').textContent = 'Pranešimai';
+    document.getElementById('notifBtn').classList.remove('enabled');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  notifEnabled = perm === 'granted';
+  if (notifEnabled) {
+    document.getElementById('notifIcon').textContent = '🔔';
+    document.getElementById('notifText').textContent = 'Pranešimai įjungti';
+    document.getElementById('notifBtn').classList.add('enabled');
+    new Notification('Commodity Pulse', { body: 'Pranešimai sėkmingai įjungti!' });
+  }
+}
+
+// ===== UTILS =====
+function formatPrice(p) {
+  if (p >= 1000) return p.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  if (p >= 10)   return p.toFixed(2);
+  return p.toFixed(4);
+}
+</script>
+</body>
+</html>
