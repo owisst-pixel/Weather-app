@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFD Positions Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --panel: #0f1620;
+    --border: #1a2530;
+    --accent: #00d4aa;
+    --accent2: #ff6b35;
+    --text: #e8f0f7;
+    --muted: #4a6070;
+    --up: #00d4aa;
+    --down: #ff4757;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    height: 48px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .logo-dot {
+    width: 7px; height: 7px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,100%{opacity:1;transform:scale(1)}
+    50%{opacity:.4;transform:scale(.6)}
+  }
+
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .badge {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .badge-live { border: 1px solid var(--accent); color: var(--accent); }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-right: 2px;
+  }
+
+  .tb-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+    letter-spacing: .05em;
+  }
+
+  .tb-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .tb-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+  .tb-btn.tf-active { border-color: var(--accent2); color: var(--accent2); background: rgba(255,107,53,.08); }
+
+  .sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+
+  /* POSITIONS BAR */
+  .positions-bar {
+    display: flex;
+    align-items: center;
+    padding: 0 0;
+    background: rgba(0,0,0,.3);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .positions-bar::-webkit-scrollbar { display: none; }
+
+  .pos-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-right: 1px solid var(--border);
+    cursor: pointer;
+    transition: background .15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .pos-chip:hover { background: rgba(255,255,255,.03); }
+  .pos-chip.active-chip { background: rgba(0,212,170,.06); }
+
+  .pos-dir {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+  .dir-buy  { background: rgba(0,212,170,.15); color: var(--up); }
+  .dir-sell { background: rgba(255,71,87,.15);  color: var(--down); }
+
+  .pos-name  { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; color: var(--text); }
+  .pos-price { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); }
+
+  /* GRID */
+  .main { flex: 1; overflow: hidden; padding: 10px 14px; min-height: 0; }
+
+  .grid { display: grid; gap: 8px; height: 100%; }
+
+  .layout-2col { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 1fr 1fr; }
+  .layout-3col { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+  .layout-4col { grid-template-columns: 1fr 1fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+  /* CHART CARD */
+  .chart-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .chart-card:hover { border-color: #243040; }
+  .chart-card.highlighted {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px rgba(0,212,170,.2), 0 4px 20px rgba(0,212,170,.08);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,.25);
+    flex-shrink: 0;
+  }
+
+  .card-left { display: flex; align-items: center; gap: 7px; }
+
+  .card-dir {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+
+  .card-symbol { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--text); }
+  .card-expiry { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); }
+  .card-right  { display: flex; align-items: center; gap: 8px; }
+  .card-qty    { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); }
+  .card-price  { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; }
+
+  .chart-body { flex: 1; min-height: 0; overflow: hidden; }
+
+  /* FULLSCREEN */
+  .fsoverlay { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 999; flex-direction: column; }
+  .fsoverlay.show { display: flex; }
+
+  .fs-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 18px; border-bottom: 1px solid var(--border);
+    background: var(--surface); flex-shrink: 0;
+  }
+  .fs-title { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; }
+
+  .fs-close {
+    background: rgba(255,71,87,.12); border: 1px solid rgba(255,71,87,.3);
+    color: var(--down); font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; padding: 5px 12px; border-radius: 4px; cursor: pointer;
+  }
+  .fs-body { flex: 1; }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Positions Dashboard
+  </div>
+  <div class="header-meta">
+    <span>7 aktyvios pozicijos</span>
+    <span class="badge badge-live">● Live</span>
+  </div>
+</header>
+
+<div class="toolbar">
+  <span class="toolbar-label">Layout:</span>
+  <button class="tb-btn active" data-layout onclick="setLayout('layout-2col',this)">2 kol.</button>
+  <button class="tb-btn" data-layout onclick="setLayout('layout-3col',this)">3 kol.</button>
+  <button class="tb-btn" data-layout onclick="setLayout('layout-4col',this)">4 kol.</button>
+
+  <div class="sep"></div>
+
+  <span class="toolbar-label">Laikotarpis:</span>
+  <button class="tb-btn" data-tf onclick="setTF('1',this)">1M</button>
+  <button class="tb-btn" data-tf onclick="setTF('5',this)">5M</button>
+  <button class="tb-btn" data-tf onclick="setTF('15',this)">15M</button>
+  <button class="tb-btn tf-active" data-tf onclick="setTF('60',this)">1H</button>
+  <button class="tb-btn" data-tf onclick="setTF('240',this)">4H</button>
+  <button class="tb-btn" data-tf onclick="setTF('D',this)">1D</button>
+  <button class="tb-btn" data-tf onclick="setTF('W',this)">1W</button>
+</div>
+
+<div class="positions-bar" id="posBar"></div>
+
+<div class="main">
+  <div class="grid layout-2col" id="grid"></div>
+</div>
+
+<div class="fsoverlay" id="fsOverlay">
+  <div class="fs-header">
+    <span class="fs-title" id="fsTitle">—</span>
+    <button class="fs-close" onclick="closeFS()">✕ Uždaryti</button>
+  </div>
+  <div class="fs-body" id="fsBody"></div>
+</div>
+
+<script>
+const POSITIONS = [
+  { id:'wheat',   symbol:'CBOT:ZW1!',   label:'Wheat SRW',   expiry:'16 Jun 26', dir:'BUY',  qty:'8.058667',    price:'$621.16',  emoji:'🌾' },
+  { id:'cocoa',   symbol:'ICEUS:CC1!',  label:'Cocoa',       expiry:'17 Jun 26', dir:'BUY',  qty:'1.491',       price:'$3,339.2', emoji:'🍫' },
+  { id:'coffee',  symbol:'ICEUS:KC1!',  label:'Coffee',      expiry:'10 Jun 26', dir:'BUY',  qty:'17.104',      price:'$293.33',  emoji:'☕' },
+  { id:'corn',    symbol:'CBOT:ZC1!',   label:'Corn',        expiry:'23 Jun 26', dir:'BUY',  qty:'10.679',      price:'$467.56',  emoji:'🌽' },
+  { id:'rbob',    symbol:'NYMEX:RB1!',  label:'Gasoline',    expiry:'27 May 26', dir:'BUY',  qty:'1,496.02',    price:'$3.3496',  emoji:'⛽' },
+  { id:'natgas',  symbol:'NYMEX:NG1!',  label:'Natural Gas', expiry:'22 May 26', dir:'SELL', qty:'1,818.18',    price:'$2.767',   emoji:'🔥' },
+  { id:'soyoil',  symbol:'CBOT:ZL1!',   label:'Soybean Oil', expiry:'23 Jun 26', dir:'BUY',  qty:'70.136',      price:'$71.16',   emoji:'🌻' },
+];
+
+let currentTF = '60';
+
+// Build top bar
+function buildBar() {
+  const bar = document.getElementById('posBar');
+  POSITIONS.forEach((p, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'pos-chip' + (i === 0 ? ' active-chip' : '');
+    chip.id = 'chip-' + p.id;
+    chip.innerHTML = `
+      <span class="pos-dir dir-${p.dir.toLowerCase()}">${p.dir}</span>
+      <span class="pos-name">${p.emoji} ${p.label}</span>
+      <span class="pos-price">${p.price}</span>
+    `;
+    chip.onclick = () => highlight(p.id);
+    bar.appendChild(chip);
+  });
+}
+
+// Build grid
+function buildGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  POSITIONS.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'chart-card';
+    card.id = 'card-' + p.id;
+    const dc = p.dir === 'BUY' ? 'dir-buy' : 'dir-sell';
+    const pc = p.dir === 'BUY' ? 'var(--up)' : 'var(--down)';
+    card.innerHTML = `
+      <div class="card-header">
+        <div class="card-left">
+          <span class="card-dir ${dc}">${p.dir}</span>
+          <span class="card-symbol">${p.emoji} ${p.label}</span>
+          <span class="card-expiry">exp ${p.expiry}</span>
+        </div>
+        <div class="card-right">
+          <span class="card-qty">×${p.qty}</span>
+          <span class="card-price" style="color:${pc}">${p.price}</span>
+        </div>
+      </div>
+      <div class="chart-body" id="body-${p.id}"></div>
+    `;
+    card.addEventListener('dblclick', () => openFS(p));
+    grid.appendChild(card);
+    buildWidget('body-' + p.id, p.symbol, currentTF);
+  });
+}
+
+function buildWidget(containerId, symbol, interval) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'width:100%;height:100%';
+  const inner = document.createElement('div');
+  inner.className = 'tradingview-widget-container__widget';
+  inner.style.cssText = 'width:100%;height:100%';
+  wrap.appendChild(inner);
+  const s = document.createElement('script');
+  s.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  s.async = true;
+  s.innerHTML = JSON.stringify({
+    autosize: true, symbol, interval,
+    timezone: 'Europe/Vilnius',
+    theme: 'dark', style: '1', locale: 'en',
+    enable_publishing: false,
+    hide_top_toolbar: false,
+    hide_legend: false,
+    save_image: false,
+    backgroundColor: 'rgba(15,22,32,1)',
+    gridColor: 'rgba(26,37,48,0.6)',
+    hide_volume: false,
+    support_host: 'https://www.tradingview.com'
+  });
+  wrap.appendChild(s);
+  el.appendChild(wrap);
+}
+
+function setLayout(cls, btn) {
+  document.getElementById('grid').className = 'grid ' + cls;
+  document.querySelectorAll('[data-layout]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setTF(tf, btn) {
+  currentTF = tf;
+  document.querySelectorAll('[data-tf]').forEach(b => b.classList.remove('tf-active'));
+  btn.classList.add('tf-active');
+  POSITIONS.forEach(p => buildWidget('body-' + p.id, p.symbol, tf));
+}
+
+function highlight(id) {
+  document.querySelectorAll('.chart-card').forEach(c => c.classList.remove('highlighted'));
+  document.querySelectorAll('.pos-chip').forEach(c => c.classList.remove('active-chip'));
+  const card = document.getElementById('card-' + id);
+  const chip = document.getElementById('chip-' + id);
+  if (card) { card.classList.add('highlighted'); card.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+  if (chip) chip.classList.add('active-chip');
+  setTimeout(() => { if (card) card.classList.remove('highlighted'); }, 2500);
+}
+
+function openFS(p) {
+  document.getElementById('fsTitle').textContent = `${p.emoji} ${p.label}  ·  ${p.dir} @ ${p.price}  ·  exp ${p.expiry}`;
+  document.getElementById('fsOverlay').classList.add('show');
+  const body = document.getElementById('fsBody');
+  body.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'width:100%;height:100%';
+  const inner = document.createElement('div');
+  inner.style.cssText = 'width:100%;height:100%';
+  wrap.appendChild(inner);
+  const s = document.createElement('script');
+  s.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  s.async = true;
+  s.innerHTML = JSON.stringify({
+    autosize: true, symbol: p.symbol, interval: currentTF,
+    timezone: 'Europe/Vilnius', theme: 'dark', style: '1', locale: 'en',
+    enable_publishing: false, backgroundColor: 'rgba(8,12,16,1)',
+    gridColor: 'rgba(26,37,48,0.5)', hide_volume: false,
+    support_host: 'https://www.tradingview.com'
+  });
+  wrap.appendChild(s);
+  body.appendChild(wrap);
+}
+
+function closeFS() {
+  document.getElementById('fsOverlay').classList.remove('show');
+  document.getElementById('fsBody').innerHTML = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFS(); });
+
+buildBar();
+buildGrid();
+</script>
+</body>
+</html>
