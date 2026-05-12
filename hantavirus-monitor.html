@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HANTAVIRUSAS — Nacionalinis Stebėsenos Centras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+:root {
+  --bg: #05080f;
+  --surface: #0b1120;
+  --surface2: #111827;
+  --border: #1e2d45;
+  --border2: #243652;
+  --accent: #e63946;
+  --accent2: #ff6b6b;
+  --amber: #f59e0b;
+  --green: #10b981;
+  --blue: #3b82f6;
+  --purple: #8b5cf6;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --muted2: #94a3b8;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* SCANLINE effect */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none; z-index: 9999;
+}
+
+/* HEADER */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 500;
+}
+.topbar-left { display: flex; align-items: center; gap: 20px; }
+.logo-badge {
+  background: var(--accent);
+  color: white;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; font-weight: 500;
+  padding: 4px 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.topbar-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px; font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text);
+}
+.live-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; color: var(--accent2);
+}
+.live-dot {
+  width: 7px; height: 7px;
+  background: var(--accent2);
+  border-radius: 50%;
+  animation: pulse 1.4s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+.topbar-right {
+  display: flex; align-items: center; gap: 16px;
+  font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted);
+}
+.clock { color: var(--muted2); }
+
+/* HERO STATS BAR */
+.stats-bar {
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  divide: 1px solid var(--border);
+}
+.stat-cell {
+  padding: 18px 24px;
+  border-right: 1px solid var(--border);
+  position: relative;
+  cursor: default;
+  transition: background 0.2s;
+}
+.stat-cell:hover { background: var(--surface); }
+.stat-cell:last-child { border-right: none; }
+.stat-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px; font-weight: 800;
+  line-height: 1;
+}
+.stat-value.red { color: var(--accent); }
+.stat-value.amber { color: var(--amber); }
+.stat-value.green { color: var(--green); }
+.stat-value.blue { color: var(--blue); }
+.stat-value.white { color: var(--text); }
+.stat-value.purple { color: var(--purple); }
+.stat-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; color: var(--muted);
+  margin-top: 4px;
+}
+.stat-trend {
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  margin-top: 4px;
+}
+.trend-up { color: var(--accent2); }
+.trend-neutral { color: var(--muted); }
+
+/* ALERT BANNER */
+.alert-banner {
+  background: linear-gradient(135deg, rgba(230,57,70,0.12), rgba(230,57,70,0.04));
+  border-bottom: 1px solid rgba(230,57,70,0.3);
+  padding: 10px 24px;
+  display: flex; align-items: center; gap: 12px;
+}
+.alert-icon { color: var(--accent); font-size: 14px; }
+.alert-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; color: var(--muted2);
+  flex: 1;
+}
+.alert-text strong { color: var(--accent2); }
+.alert-source {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; color: var(--muted);
+}
+
+/* MAIN LAYOUT */
+.main {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  height: calc(100vh - 52px - 76px - 45px);
+  min-height: 600px;
+}
+
+/* MAP */
+.map-panel {
+  position: relative;
+  border-right: 1px solid var(--border);
+}
+#map {
+  width: 100%; height: 100%;
+  background: #0a0f1a;
+}
+
+/* MAP OVERLAYS */
+.map-header {
+  position: absolute; top: 16px; left: 16px; z-index: 200;
+  background: rgba(5,8,15,0.9);
+  border: 1px solid var(--border2);
+  padding: 10px 14px;
+  backdrop-filter: blur(8px);
+}
+.map-header-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 700;
+  color: var(--text); margin-bottom: 4px;
+}
+.map-header-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; color: var(--muted);
+}
+
+.map-legend {
+  position: absolute; bottom: 16px; left: 16px; z-index: 200;
+  background: rgba(5,8,15,0.92);
+  border: 1px solid var(--border2);
+  padding: 12px 14px;
+  backdrop-filter: blur(8px);
+  min-width: 180px;
+}
+.legend-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted); margin-bottom: 10px;
+}
+.legend-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 7px; font-size: 11px;
+  font-family: 'DM Mono', monospace; color: var(--muted2);
+}
+.legend-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+.map-timeline {
+  position: absolute; bottom: 16px; right: 16px; z-index: 200;
+  background: rgba(5,8,15,0.92);
+  border: 1px solid var(--border2);
+  padding: 12px 14px; width: 200px;
+  backdrop-filter: blur(8px);
+}
+.timeline-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted); margin-bottom: 10px;
+}
+.timeline-event {
+  display: flex; gap: 8px; margin-bottom: 8px;
+  align-items: flex-start;
+}
+.timeline-date {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; color: var(--muted); white-space: nowrap;
+  min-width: 50px;
+}
+.timeline-desc {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; color: var(--muted2); line-height: 1.4;
+}
+
+/* SIDEBAR */
+.sidebar {
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  flex-shrink: 0;
+}
+.tab-btn {
+  flex: 1; padding: 12px 8px;
+  background: none; border: none;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.tab-btn.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.tab-btn:hover:not(.active) { color: var(--muted2); }
+
+.tab-content {
+  display: none; flex: 1; overflow-y: auto;
+}
+.tab-content.active { display: flex; flex-direction: column; }
+
+/* CUSTOM SCROLLBAR */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--surface2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* CASES LIST */
+.cases-section {
+  border-bottom: 1px solid var(--border);
+}
+.section-header {
+  padding: 12px 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted);
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.case-card {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+.case-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px;
+}
+.case-card.confirmed::before { background: var(--accent); }
+.case-card.probable::before { background: var(--amber); }
+.case-card.monitoring::before { background: var(--blue); }
+.case-card.negative::before { background: var(--green); }
+.case-card:hover { background: var(--surface2); }
+.case-country {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 700;
+  color: var(--text); margin-bottom: 4px;
+}
+.case-detail {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; color: var(--muted); line-height: 1.6;
+}
+.case-tags {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+}
+.tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; padding: 2px 6px;
+  border-radius: 2px; font-weight: 500;
+}
+.tag-confirmed { background: rgba(230,57,70,0.15); color: var(--accent2); border: 1px solid rgba(230,57,70,0.3); }
+.tag-probable { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+.tag-monitoring { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+.tag-negative { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.tag-deceased { background: rgba(139,92,246,0.15); color: var(--purple); border: 1px solid rgba(139,92,246,0.3); }
+.tag-icu { background: rgba(230,57,70,0.25); color: #ff9898; border: 1px solid rgba(230,57,70,0.5); }
+
+/* INFO TAB */
+.info-block {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.info-block-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 700;
+  color: var(--text); margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.info-block-icon { font-size: 16px; }
+.info-text {
+  font-size: 12px; color: var(--muted2);
+  line-height: 1.7;
+}
+.symptom-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 6px; margin-top: 10px;
+}
+.symptom-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; color: var(--muted2);
+  display: flex; align-items: center; gap: 6px;
+}
+.symptom-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+.risk-meter {
+  margin-top: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.risk-row { display: flex; justify-content: space-between; align-items: center; }
+.risk-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+.risk-bar-wrap { flex: 1; height: 4px; background: var(--border2); margin: 0 10px; border-radius: 2px; }
+.risk-bar { height: 100%; border-radius: 2px; }
+.risk-val { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500; min-width: 30px; text-align: right; }
+
+/* AI TAB */
+.ai-panel {
+  padding: 0;
+  display: flex; flex-direction: column;
+  height: 100%;
+}
+.ai-output {
+  flex: 1; padding: 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; color: var(--muted2);
+  line-height: 1.8; overflow-y: auto;
+  min-height: 200px;
+}
+.ai-output .ai-header {
+  color: var(--blue); font-weight: 500; margin-bottom: 8px;
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.ai-output p { margin-bottom: 10px; }
+.ai-output strong { color: var(--text); font-weight: 500; }
+.ai-output .highlight { color: var(--accent2); }
+.ai-output .safe { color: var(--green); }
+.ai-thinking {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--muted); font-size: 10px; padding: 12px 16px;
+}
+.thinking-dots span {
+  display: inline-block; width: 4px; height: 4px;
+  background: var(--blue); border-radius: 50;
+  margin: 0 2px;
+  animation: blink 1s infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+.ai-input-area {
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex; gap: 8px;
+  background: var(--surface2);
+  flex-shrink: 0;
+}
+.ai-input {
+  flex: 1; background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.ai-input:focus { border-color: var(--blue); }
+.ai-input::placeholder { color: var(--muted); }
+.ai-send {
+  background: var(--blue);
+  border: none; color: white;
+  padding: 8px 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.ai-send:hover { background: #2563eb; }
+.ai-send:disabled { background: var(--border2); cursor: not-allowed; }
+
+/* SOURCES */
+.source-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.source-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; padding: 3px 6px;
+  border-radius: 2px; flex-shrink: 0;
+  font-weight: 500; margin-top: 2px;
+}
+.source-badge.who { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+.source-badge.ecdc { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.source-badge.cdc { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+.source-badge.media { background: rgba(139,92,246,0.15); color: var(--purple); border: 1px solid rgba(139,92,246,0.3); }
+.source-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px; color: var(--text); margin-bottom: 3px;
+  line-height: 1.4;
+}
+.source-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; color: var(--muted);
+}
+.source-link {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; color: var(--blue);
+  text-decoration: none; margin-top: 3px; display: block;
+}
+.source-link:hover { text-decoration: underline; }
+
+/* BOTTOM BAR */
+.bottom-bar {
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  padding: 8px 24px;
+  display: flex; align-items: center; gap: 24px;
+  font-family: 'DM Mono', monospace; font-size: 10px;
+}
+.bottom-item { color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.bottom-item span { color: var(--muted2); }
+.bottom-status { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+/* LEAFLET DARK */
+.leaflet-container { background: #0a0f1a !important; }
+.leaflet-tile { filter: brightness(0.4) saturate(0.3) hue-rotate(200deg) !important; }
+.leaflet-popup-content-wrapper {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border2) !important;
+  color: var(--text) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+}
+.leaflet-popup-tip { background: var(--surface2) !important; }
+.leaflet-popup-content {
+  font-family: 'DM Mono', monospace !important;
+  font-size: 11px !important;
+  margin: 12px !important;
+  line-height: 1.7 !important;
+}
+.leaflet-popup-close-button { color: var(--muted) !important; }
+
+/* SHIP TRACK */
+.ship-icon { font-size: 20px; }
+
+/* RESPONSIVE */
+@media (max-width: 1100px) {
+  .stats-bar { grid-template-columns: repeat(3, 1fr); }
+  .main { grid-template-columns: 1fr; grid-template-rows: 400px 1fr; }
+}
+@media (max-width: 640px) {
+  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  .topbar-right .clock { display: none; }
+}
+
+/* FADE IN */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.case-card { animation: fadeIn 0.3s ease both; }
+.case-card:nth-child(1) { animation-delay: 0.05s; }
+.case-card:nth-child(2) { animation-delay: 0.1s; }
+.case-card:nth-child(3) { animation-delay: 0.15s; }
+.case-card:nth-child(4) { animation-delay: 0.2s; }
+
+.update-flash {
+  animation: flash 0.5s ease;
+}
+@keyframes flash {
+  0% { background: rgba(59,130,246,0.3); }
+  100% { background: transparent; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-badge">NSC</div>
+    <div class="topbar-title">HANTAVIRUSAS — NACIONALINIS STEBĖSENOS CENTRAS</div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-pill">
+      <div class="live-dot"></div>
+      GYVAS SRAUTAS
+    </div>
+    <div class="clock" id="clock">--:--:--</div>
+    <div>2026-05-12</div>
+  </div>
+</div>
+
+<!-- ALERT BANNER -->
+<div class="alert-banner">
+  <div class="alert-icon">⚠</div>
+  <div class="alert-text">
+    <strong>AKTYVUS PROTRŪKIS:</strong> Andes hantavirusas — kruizinis laivas MV Hondius (Nyderlandai). 
+    11 atvejų iš viso (9 patvirtinti, 2 tikėtini) iš 23 valstybių. 3 mirę. Keleiviai repatrijuoti į Europą ir JAV.
+    Europos Komisija koordinuoja reagavimą. ECDC rizika ES gyventojams: <strong>LABAI ŽEMA</strong>.
+  </div>
+  <div class="alert-source">Šaltinis: ECDC 2026-05-12 | WHO DON599</div>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-cell">
+    <div class="stat-label">Iš viso atvejų</div>
+    <div class="stat-value red" id="s-total">11</div>
+    <div class="stat-sub">Patvirtinti + tikėtini</div>
+    <div class="stat-trend trend-up">↑ nuo 7 (05-04)</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-label">Patvirtinti</div>
+    <div class="stat-value red" id="s-confirmed">9</div>
+    <div class="stat-sub">Lab. patvirtinta PCR/Ab</div>
+    <div class="stat-trend trend-up">↑ ECDC 12-05</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-label">Mirčių</div>
+    <div class="stat-value purple" id="s-deaths">3</div>
+    <div class="stat-sub">2 patvirtintos, 1 tiriama</div>
+    <div class="stat-trend trend-neutral">CFR ~27%</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-label">Stebimi kontaktai</div>
+    <div class="stat-value amber" id="s-monitoring">85+</div>
+    <div class="stat-sub">Prancūzija 22, JAV 18+</div>
+    <div class="stat-trend trend-up">↑ kontaktų sekimas</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-label">Šalys</div>
+    <div class="stat-value blue" id="s-countries">23</div>
+    <div class="stat-sub">Keleivių kilmės šalys</div>
+    <div class="stat-trend trend-neutral">9 ES/EEE šalys</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-label">ES rizika</div>
+    <div class="stat-value green">ŽEMA</div>
+    <div class="stat-sub">ECDC vertinimas</div>
+    <div class="stat-trend trend-neutral">Atnaujinta 12-05</div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+  <!-- MAP -->
+  <div class="map-panel">
+    <div class="map-header">
+      <div class="map-header-title">🌍 PASAULINIS STEBĖJIMAS</div>
+      <div class="map-header-sub">Hantaviruso MV Hondius protrūkio geografija · 2026-05</div>
+    </div>
+    <div id="map"></div>
+    <div class="map-legend">
+      <div class="legend-title">Legenda</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#e63946"></div>Patvirtinti atvejai</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#f59e0b"></div>Tikėtini atvejai</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#3b82f6"></div>Stebimi kontaktai</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#10b981"></div>Neigiami / pasveikę</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#8b5cf6"></div>Mirties atvejis</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#e2e8f0;opacity:0.5"></div>Laivo maršrutas</div>
+    </div>
+    <div class="map-timeline">
+      <div class="timeline-title">Chronologija</div>
+      <div class="timeline-event"><div class="timeline-date">04-01</div><div class="timeline-desc">MV Hondius išplaukia iš Ushuaia, Argentina</div></div>
+      <div class="timeline-event"><div class="timeline-date">04-11</div><div class="timeline-desc">1-oji mirtis laive (Nyderlandai)</div></div>
+      <div class="timeline-event"><div class="timeline-date">04-24</div><div class="timeline-desc">Sustojimas Šv. Elenos saloje</div></div>
+      <div class="timeline-event"><div class="timeline-date">04-25</div><div class="timeline-desc">2-oji mirtis (Johanesburgas)</div></div>
+      <div class="timeline-event"><div class="timeline-date">05-02</div><div class="timeline-desc">3-ioji mirtis, PSO pranešimas</div></div>
+      <div class="timeline-event"><div class="timeline-date">05-06</div><div class="timeline-desc">Andes viruso patvirtinimas</div></div>
+      <div class="timeline-event"><div class="timeline-date">05-10</div><div class="timeline-desc">Laivas atvyksta į Tenerifę</div></div>
+      <div class="timeline-event"><div class="timeline-date">05-11</div><div class="timeline-desc">Visi keleiviai repatrijuoti</div></div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <button class="tab-btn active" onclick="switchTab('cases')">Atvejai</button>
+      <button class="tab-btn" onclick="switchTab('info')">Informacija</button>
+      <button class="tab-btn" onclick="switchTab('ai')">AI Analizė</button>
+      <button class="tab-btn" onclick="switchTab('sources')">Šaltiniai</button>
+    </div>
+
+    <!-- CASES TAB -->
+    <div id="tab-cases" class="tab-content active">
+      <div class="section-header">
+        Patvirtinti ir stebimi šalys
+        <span style="color:var(--accent)">11 atvejų</span>
+      </div>
+
+      <div class="case-card confirmed" onclick="flyTo(52.37, 4.90, 'Nyderlandai')">
+        <div class="case-country">🇳🇱 Nyderlandai</div>
+        <div class="case-detail">8 keleiviai + 5 įgulos nariai. 2 mirę laive. 12 medicinos darbuotojų ligoninėje — stebimi po kontakto su pacientu.</div>
+        <div class="case-tags">
+          <span class="tag tag-confirmed">✓ patvirtinti</span>
+          <span class="tag tag-deceased">† 2 mirę</span>
+          <span class="tag tag-monitoring">12 gydytojai</span>
+        </div>
+      </div>
+
+      <div class="case-card confirmed" onclick="flyTo(46.81, 8.23, 'Šveicarija')">
+        <div class="case-country">🇨🇭 Šveicarija</div>
+        <div class="case-detail">Vyras gydomas Ciuriche. Buvo tarp 30 keleivių, išlipusių Šv. Elenos saloje. Sekvencija paskelbta virological.org (ANDV/Switzerland/Hu-3337/2026).</div>
+        <div class="case-tags">
+          <span class="tag tag-confirmed">✓ patvirtintas</span>
+          <span class="tag tag-icu">Hospitalizuotas</span>
+        </div>
+      </div>
+
+      <div class="case-card confirmed" onclick="flyTo(46.22, 2.21, 'Prancūzija')">
+        <div class="case-country">🇫🇷 Prancūzija</div>
+        <div class="case-detail">1 patvirtintas atvejis reanimacijoje (ekstrakorporinė cirkuliacija). 4 neigiami, stebimi. 22 kontaktų atvejų, visi identifikuoti ir tikrinami.</div>
+        <div class="case-tags">
+          <span class="tag tag-confirmed">✓ 1 patvirtintas</span>
+          <span class="tag tag-icu">Reanimacija</span>
+          <span class="tag tag-monitoring">22 kontaktai</span>
+        </div>
+      </div>
+
+      <div class="case-card confirmed" onclick="flyTo(-26.20, 28.04, 'Pietų Afrika')">
+        <div class="case-country">🇿🇦 Pietų Afrika</div>
+        <div class="case-detail">Pirmasis atvejis patvirtintas Johanesburge (05-02). Britų turistas gydytas ligoninėje. Laboratorija (NICD) pirmoji identifikavo Andes virusą.</div>
+        <div class="case-tags">
+          <span class="tag tag-confirmed">✓ patvirtintas</span>
+          <span class="tag tag-deceased">† 1 mirtis</span>
+        </div>
+      </div>
+
+      <div class="case-card confirmed" onclick="flyTo(51.50, -0.12, 'JK')">
+        <div class="case-country">🇬🇧 Jungtinė Karalystė</div>
+        <div class="case-detail">Britiška turistė mirė Johanesburge 04-25 (KLM skrydis KL592, 45 min. laikyta lėktuve). Britiška keleivė — Leideno universitetinė ligoninė. UKHSA seksė visus 30 Šv. Elenos keleivių.</div>
+        <div class="case-tags">
+          <span class="tag tag-confirmed">✓ patvirtinti</span>
+          <span class="tag tag-deceased">† 1 mirtis</span>
+        </div>
+      </div>
+
+      <div class="case-card probable" onclick="flyTo(51.16, 10.45, 'Vokietija')">
+        <div class="case-country">🇩🇪 Vokietija</div>
+        <div class="case-detail">Vokietė mirė laive 05-02. Kitas vokiečių pilietis evakuotas 05-06 į Diuseldorfo universitetinę ligoninę — testas neigiamas.</div>
+        <div class="case-tags">
+          <span class="tag tag-probable">~ tikėtinas</span>
+          <span class="tag tag-deceased">† 1 mirtis</span>
+          <span class="tag tag-negative">1 neigiamas</span>
+        </div>
+      </div>
+
+      <div class="case-card monitoring" onclick="flyTo(37.09, -95.71, 'JAV')">
+        <div class="case-country">🇺🇸 Jungtinės Amerikos Valstijos</div>
+        <div class="case-detail">16 keleivių Nebraska Medical Center (15 karantinas, 1 bioizoliacinis skyrius — nėra simptomų). 2 Atlantoje, Emory ligoninėje — vienas neigiamas. CDC paskelbė lygį 3.</div>
+        <div class="case-tags">
+          <span class="tag tag-monitoring">16 stebimi</span>
+          <span class="tag tag-negative">1 neigiamas</span>
+        </div>
+      </div>
+
+      <div class="case-card monitoring" onclick="flyTo(56.87, 24.60, 'Lietuva')">
+        <div class="case-country">🇱🇹 Lietuva</div>
+        <div class="case-detail">Nėra patvirtintų atvejų susijusių su MV Hondius protrūkiu. NVSC stebi situaciją. Dėl Puumala viruso (endeminė Europoje) — įprastas sezoninis aktyvumas.</div>
+        <div class="case-tags">
+          <span class="tag tag-negative">✓ nėra atvejų</span>
+          <span class="tag tag-monitoring">Stebima</span>
+        </div>
+      </div>
+
+      <div class="case-card monitoring" onclick="flyTo(43.94, 12.46, 'Singapūras')">
+        <div class="case-country">🇸🇬 Singapūras</div>
+        <div class="case-detail">2 Singapūro gyventojai vyrai (60+) savizoliuojasi, tiriami. Vienas — lengvi simptomai (sloga), kitas besimptomis.</div>
+        <div class="case-tags">
+          <span class="tag tag-monitoring">2 tiriami</span>
+        </div>
+      </div>
+
+      <div class="case-card monitoring" onclick="flyTo(56.13, -106.34, 'Kanada')">
+        <div class="case-country">🇨🇦 Kanada</div>
+        <div class="case-detail">3 asmenys savizoliuojasi — 2 Ontarijuje, 1 Kvebeke. Vienas — ne keleivas laivo, bet buvo tame pačiame skrydyje. Visi stebimi.</div>
+        <div class="case-tags">
+          <span class="tag tag-monitoring">3 stebimi</span>
+        </div>
+      </div>
+
+      <div class="case-card monitoring" onclick="flyTo(1.35, 103.82, 'Singapūras')">
+        <div class="case-country">🇪🇸 Ispanija (Tenerifė)</div>
+        <div class="case-detail">Laivas atvyko 05-10 į Granadilla uostą. 7 evakuacijos skrydžiai į 6 Europos šalis ir Kanadą. Ispanija koordinavo repatriaciją. Ispanų sveikatos ministras: planas "precedento neturintis".</div>
+        <div class="case-tags">
+          <span class="tag tag-negative">✓ vietinių atvejų nėra</span>
+          <span class="tag tag-monitoring">Koordinatoriai</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- INFO TAB -->
+    <div id="tab-info" class="tab-content">
+      <div class="info-block">
+        <div class="info-block-title"><span class="info-block-icon">🦠</span>Kas yra Andes Hantavirusas?</div>
+        <div class="info-text">
+          Andes virusas (ANDV) — vienintelis iš 38 žinomų hantaviruso rūšių, galinčių plisti tarp žmonių. Natūraliai paplitęs Pietų Amerikoje (Argentina, Čilė). Sukelia Hantavirusinį kardiopulmoninį sindromą (HCPS) — greita progresiją į plaučių nepakankamumą. Mirtingumas iki 50% be agresyvaus gydymo.
+        </div>
+      </div>
+
+      <div class="info-block">
+        <div class="info-block-title"><span class="info-block-icon">🔴</span>Simptomai (inkubacija 1–8 sav.)</div>
+        <div class="symptom-grid">
+          <div class="symptom-item"><div class="symptom-dot"></div>Karščiavimas</div>
+          <div class="symptom-item"><div class="symptom-dot"></div>Galvos skausmas</div>
+          <div class="symptom-item"><div class="symptom-dot"></div>Raumenų skausmai</div>
+          <div class="symptom-item"><div class="symptom-dot"></div>Šaltkrėtis</div>
+          <div class="symptom-item"><div class="symptom-dot"></div>Pykinimas/vėmimas</div>
+          <div class="symptom-item"><div class="symptom-dot"></div>Pilvo skausmas</div>
+          <div class="symptom-item"><div class="symptom-dot" style="background:var(--accent)"></div>Kvėpavimo sunkumai</div>
+          <div class="symptom-item"><div class="symptom-dot" style="background:var(--accent)"></div>Hipotenzija</div>
+        </div>
+      </div>
+
+      <div class="info-block">
+        <div class="info-block-title"><span class="info-block-icon">📊</span>Rizikos lygiai</div>
+        <div class="risk-meter">
+          <div class="risk-row">
+            <div class="risk-label">ES bendroji gyv.</div>
+            <div class="risk-bar-wrap"><div class="risk-bar" style="width:8%;background:var(--green)"></div></div>
+            <div class="risk-val" style="color:var(--green)">ŽEMA</div>
+          </div>
+          <div class="risk-row">
+            <div class="risk-label">MV Hondius kontaktai</div>
+            <div class="risk-bar-wrap"><div class="risk-bar" style="width:55%;background:var(--amber)"></div></div>
+            <div class="risk-val" style="color:var(--amber)">VID.</div>
+          </div>
+          <div class="risk-row">
+            <div class="risk-label">Artimi kontaktai</div>
+            <div class="risk-bar-wrap"><div class="risk-bar" style="width:75%;background:var(--accent)"></div></div>
+            <div class="risk-val" style="color:var(--accent)">AUKŠTA</div>
+          </div>
+          <div class="risk-row">
+            <div class="risk-label">Be gydymo HCPS</div>
+            <div class="risk-bar-wrap"><div class="risk-bar" style="width:90%;background:var(--accent)"></div></div>
+            <div class="risk-val" style="color:var(--accent)">~50%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-block">
+        <div class="info-block-title"><span class="info-block-icon">🛡️</span>Prevencija ir reagavimas</div>
+        <div class="info-text">
+          <strong>Nėra vakcinos ar specifinio gydymo.</strong> Gydymas simptominis — ECMO, respiratorinė parama.<br><br>
+          Prevencija: vengti graužikų išmatų/šlapimo kontakto, vėdinti uždarus plotus, naudoti apsaugines kaukes. MV Hondius kontaktai: 45 dienų savisteba.<br><br>
+          <strong>Lietuva:</strong> NVSC rekomenduoja informuoti gydytoją apie keliones Pietų Amerikoje, jei atsiranda simptomai.
+        </div>
+      </div>
+    </div>
+
+    <!-- AI TAB -->
+    <div id="tab-ai" class="tab-content">
+      <div class="ai-panel">
+        <div class="ai-output" id="aiOutput">
+          <div class="ai-header">⬡ CLAUDE AI — SITUACIJOS ANALIZĖ</div>
+          <p>Paspauskite <strong>„Analizuoti"</strong> arba užduokite klausimą apie hantaviruso protrūkį. Sistema naudoja Claude claude-sonnet-4-20250514 modelį realaus laiko analizei.</p>
+          <p class="safe">Pavyzdžiai: „Kokia tikimybė platesnio protrūkio?" · „Ką turėtų žinoti lietuviai?" · „Palygink su COVID-19" · „Kaip elgtis grįžus iš Pietų Amerikos?"</p>
+        </div>
+        <div id="aiThinking" class="ai-thinking" style="display:none;">
+          <span>Analizuojama</span>
+          <div class="thinking-dots">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+        <div class="ai-input-area">
+          <input type="text" class="ai-input" id="aiQuestion" placeholder="Klausimas apie hantaviruso situaciją..." onkeypress="handleAiKey(event)">
+          <button class="ai-send" id="aiBtn" onclick="askAI()">Analizuoti</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOURCES TAB -->
+    <div id="tab-sources" class="tab-content">
+      <div class="section-header">Oficialūs šaltiniai ir naujausios ataskaitos</div>
+
+      <div class="source-item">
+        <div class="source-badge ecdc">ECDC</div>
+        <div>
+          <div class="source-title">Andes hantavirus outbreak in cruise ship — Daily Update 12 May 2026</div>
+          <div class="source-meta">Atnaujinta: 2026-05-12 · 11 atvejų, 9 patvirtinti</div>
+          <a class="source-link" href="https://www.ecdc.europa.eu/en/infectious-disease-topics/hantavirus-infection/surveillance-and-updates/andes-hantavirus-outbreak" target="_blank">→ ecdc.europa.eu</a>
+        </div>
+      </div>
+
+      <div class="source-item">
+        <div class="source-badge who">WHO</div>
+        <div>
+          <div class="source-title">Disease Outbreak News DON599 — Hantavirus cluster linked to cruise ship travel</div>
+          <div class="source-meta">Paskelbta: 2026-05-04 · Atnaujinta 2026-05-07</div>
+          <a class="source-link" href="https://www.who.int/emergencies/disease-outbreak-news/item/2026-DON599" target="_blank">→ who.int</a>
+        </div>
+      </div>
+
+      <div class="source-item">
+        <div class="source-badge ecdc">EC</div>
+        <div>
+          <div class="source-title">Europos Komisija koordinuoja reagavimą į hantaviruso protrūkį</div>
+          <div class="source-meta">2026-05-11 · ES civilinės saugos mechanizmas aktyvuotas</div>
+          <a class="source-link" href="https://civil-protection-humanitarian-aid.ec.europa.eu/news-stories/news/commission-coordinates-european-response-hantavirus-outbreak-2026-05-11_en" target="_blank">→ ec.europa.eu</a>
+        </div>
+      </div>
+
+      <div class="source-item">
+        <div class="source-badge cdc">CDC</div>
+        <div>
+          <div class="source-title">US CDC — Level 3 Emergency Response. 18 amerikietiečių stebimi</div>
+          <div class="source-meta">2026-05-11 · Nebraska Medical Center, Emory University</div>
+          <a class="source-link" href="https://www.cdc.gov/hantavirus" target="_blank">→ cdc.gov</a>
+        </div>
+      </div>
+
+      <div class="source-item">
+        <div class="source-badge media">WIKI</div>
+        <div>
+          <div class="source-title">MV Hondius hantavirus outbreak — detalus chronologijos aprašas</div>
+          <div class="source-meta">Nuolat atnaujinama · Šaltiniai: WHO, ECDC, nacionaliniai</div>
+          <a class="source-link" href="https://en.wikipedia.org/wiki/MV_Hondius_hantavirus_outbreak" target="_blank">→ wikipedia.org/wiki/MV_Hondius</a>
+        </div>
+      </div>
+
+      <div class="source-item">
+        <div class="source-badge media">GENOMIC</div>
+        <div>
+          <div class="source-title">Hantavirus Cruise Outbreak Tracker — genomicepi.com</div>
+          <div class="source-meta">Chronologinis ataskaita su šaltiniais · Atnaujinama kasdien</div>
+          <a class="source-link" href="https://genomicepi.com/outbreaks/hantavirus-hondius/" target="_blank">→ genomicepi.com</a>
+        </div>
+      </div>
+
+      <div class="source-item">
+        <div class="source-badge media">ECDC Q&A</div>
+        <div>
+          <div class="source-title">Klausimai ir atsakymai apie hantaviruso protrūkį laive</div>
+          <div class="source-meta">Atnaujinta prieš 7h · Visuomenei ir medikams</div>
+          <a class="source-link" href="https://www.ecdc.europa.eu/en/infectious-disease-topics/hantavirus-infection/surveillance-and-updates/questions-answers-outbreak" target="_blank">→ ecdc.europa.eu/questions-answers</a>
+        </div>
+      </div>
+
+      <div class="section-header" style="margin-top:0">Lietuvos šaltiniai</div>
+
+      <div class="source-item">
+        <div class="source-badge ecdc">NVSC</div>
+        <div>
+          <div class="source-title">Nacionalinis visuomenės sveikatos centras — hantaviruso informacija</div>
+          <div class="source-meta">Lietuvos oficialusis sveikatos šaltinis</div>
+          <a class="source-link" href="https://nvsc.lrv.lt" target="_blank">→ nvsc.lrv.lt</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM STATUS BAR -->
+<div class="bottom-bar">
+  <div class="bottom-item">Duomenų šaltiniai: <span>ECDC · WHO · CDC · ANRS</span></div>
+  <div class="bottom-item">Protrūkio virusas: <span>Andes hantavirus (ANDV)</span></div>
+  <div class="bottom-item">Laivas: <span>MV Hondius (Nyderlandai)</span></div>
+  <div class="bottom-item">Maršrutas: <span>Ushuaia → Š. Elena → Tenerifė</span></div>
+  <div class="bottom-status">
+    <div class="status-dot"></div>
+    <span style="color:var(--green)">Sistema aktyvi</span>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ===== CLOCK =====
+function updateClock() {
+  const now = new Date();
+  const t = now.toISOString().split('T')[1].split('.')[0];
+  document.getElementById('clock').textContent = t + ' UTC';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ===== TABS =====
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ===== MAP =====
+const map = L.map('map', { zoomControl: false }).setView([20, 10], 2);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap © CARTO',
+  subdomains: 'abcd', maxZoom: 19
+}).addTo(map);
+
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+// Data
+const locations = [
+  { lat: -54.8, lng: -68.3, label: 'Ushuaia, Argentina', color: '#8b5cf6', size: 14, status: 'Kilmės taškas', detail: 'Įtariama pirminė užkrėtimo vieta. Nyderlandų pilietis dalyvavo paukščių stebėjimo ekspedicijose Argentinoje ir Čilėje 2025 lapkritis – 2026 balandis.' },
+  { lat: -15.93, lng: -5.71, label: 'Šv. Elenos sala', color: '#f59e0b', size: 12, status: '30 keleivių išlipo', detail: '30 keleivių išlipo 04-24. UKHSA seksė visus. Vienas salos gyventojas (iš 220) – įtariamas užsikrėtimas. Britų kariai nušoko parašiutais.' },
+  { lat: -26.20, lng: 28.04, label: 'Johanesburgas, PAR', color: '#e63946', size: 16, status: 'Patvirtinti + 2 mirę', detail: 'NICD pirmoji identifikavo Andes virusą 05-02. Britų turistas gydomas intensyviai. Britiška keleivė mirė 04-25 (prieš tai 45 min. lėktuve KLM KL592).' },
+  { lat: 28.29, lng: -15.77, label: 'Tenerifė, Ispanija', color: '#3b82f6', size: 18, status: 'Evakuacijos centras', detail: 'Laivas atvyko 05-10 05:30. 7 evakuacijos skrydžiai į 6 Europos šalis + Kanada. 94 keleiviai repatrijuoti. Ispanų gynybos ministras: "precedento neturintis".' },
+  { lat: 52.37, lng: 4.90, label: 'Nyderlandai', color: '#e63946', size: 15, status: '2 mirę, keli hospitalizuoti', detail: '8 keleiviai + 5 įgulos nariai – nyderlandiečiai. 2 mirę. 12 medicinos darbuotojų ligoninėje karantinas po kontakto.' },
+  { lat: 47.38, lng: 8.54, label: 'Ciurichas, Šveicarija', color: '#e63946', size: 13, status: 'Patvirtintas (hospitalizuotas)', detail: 'Viruso sekvencija paskelbta: ANDV/Switzerland/Hu-3337/2026. Vienas iš 30 Šv. Elenos keleivių. Nextstrain puslapiai sukurti.' },
+  { lat: 48.85, lng: 2.35, label: 'Paryžius, Prancūzija', color: '#e63946', size: 14, status: '1 patvirtintas (reanimacija)', detail: 'Keleivė – sunkiausios formos HCPS, ECMO (ekstrakorporinė cirkuliacija). 4 kiti neigiami, bet stebimi. Iš viso 22 kontaktų atvejai Prancūzijoje.' },
+  { lat: 51.50, lng: -0.12, label: 'Jungtinė Karalystė', color: '#e63946', size: 13, status: 'Patvirtinti', detail: 'Britiška keleivė – Leideno universitetinė ligoninė. Kita mirė Johanesburge 04-25. UKHSA sekė 30 Šv. Elenos keleivių.' },
+  { lat: 51.22, lng: 6.78, label: 'Diuseldorfas, Vokietija', color: '#f59e0b', size: 12, status: 'Tikėtinas (neigiamas)', detail: 'Vokietė mirė laive 05-02 – kūnas liko laive iki Tenerifės. Kitas vokietis evakuotas – Diuseldorfo UH – testas neigiamas.' },
+  { lat: 41.16, lng: -8.62, label: 'Portugalija (St. Helena skrydis)', color: '#3b82f6', size: 10, status: 'Kontaktai stebimi', detail: 'KLM skrydžio KL592 (Johanesburgas–Amsterdamas) keleiviai identifikuoti ir stebimi.' },
+  { lat: 41.65, lng: -4.72, label: 'Ispanija', color: '#10b981', size: 11, status: 'Koordinatoriai', detail: 'Ispanijos sveikatos institucijos koordinavo repatriaciją. Vietinių atvejų nėra.' },
+  { lat: 41.90, lng: 12.50, label: 'Italija', color: '#3b82f6', size: 10, status: 'Stebima', detail: 'Italų keleivių buvimas laive – stebimi.' },
+  { lat: 40.19, lng: 22.85, label: 'Graikija', color: '#3b82f6', size: 10, status: 'Dalyvavo evakuacijoje', detail: 'Graikija suteikė evakuacijos skrydį 05-10 iš Tenerifės.' },
+  { lat: 53.41, lng: -8.24, label: 'Airija', color: '#3b82f6', size: 10, status: 'Dalyvavo evakuacijoje', detail: 'Airija suteikė evakuacijos skrydį 05-10 iš Tenerifės.' },
+  { lat: 56.13, lng: -106.34, label: 'Kanada', color: '#3b82f6', size: 13, status: '3 stebimi', detail: '2 Ontarijuje, 1 Kvebeke savizoliuojasi. Vienas buvo ne laive, bet tame pačiame skrydyje su patvirtintu atvejiu.' },
+  { lat: 41.51, lng: -98.47, label: 'Nebraska, JAV', color: '#3b82f6', size: 14, status: '16 stebimi', detail: '15 karantino skyriuje, 1 bioizoliaciniame. Nėra simptomų. CDC – lygis 3. Dar 2 Atlante (Emory UH) – vienas neigiamas.' },
+  { lat: 1.35, lng: 103.82, label: 'Singapūras', color: '#f59e0b', size: 11, status: '2 tiriami', detail: 'Du vyrai (60+): vienas – lengvi simptomai, kitas besimptomis. Abu savizoliuojasi.' },
+  { lat: -33.86, lng: 151.21, label: 'Australija', color: '#3b82f6', size: 10, status: 'Stebima', detail: 'Australų keleivių buvimas laive – stebimi pagal WHO rekomendacijas.' },
+  { lat: 56.87, lng: 24.60, label: 'Lietuva', color: '#10b981', size: 12, status: 'Nėra atvejų', detail: 'Nėra patvirtintų atvejų susijusių su MV Hondius. NVSC stebi situaciją. Puumala virusas – endeminė Europa – įprastas sezoninis aktyvumas.' },
+];
+
+// Ship route
+const shipRoute = [
+  [-54.8, -68.3], [-40.0, -52.0], [-20.0, -23.0], [-15.93, -5.71],
+  [-7.92, -14.36], [7.97, -14.40], [14.93, -23.51], [28.29, -15.77]
+];
+
+// Draw route
+L.polyline(shipRoute, {
+  color: 'rgba(226,232,240,0.25)',
+  weight: 2, dashArray: '6 8',
+}).addTo(map);
+
+// Ship marker at Tenerife
+L.marker([28.29, -15.77], {
+  icon: L.divIcon({
+    html: '<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8))">🚢</div>',
+    iconSize: [28, 28], iconAnchor: [14, 14],
+    className: ''
+  })
+}).addTo(map).bindPopup('<strong>MV Hondius</strong><br>Granadilla uostas, Tenerifė<br>Atvyko: 2026-05-10<br>Keleiviai repatrijuoti: 2026-05-11');
+
+// Add markers
+locations.forEach(loc => {
+  const circle = L.circleMarker([loc.lat, loc.lng], {
+    radius: loc.size,
+    fillColor: loc.color,
+    color: 'rgba(255,255,255,0.3)',
+    weight: 1.5,
+    fillOpacity: 0.85,
+  }).addTo(map);
+
+  const popupContent = `
+    <div style="max-width:220px">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#e2e8f0;font-weight:500;margin-bottom:6px">${loc.label}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;margin-bottom:8px">${loc.status}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:#64748b;line-height:1.6">${loc.detail}</div>
+    </div>`;
+  circle.bindPopup(popupContent, { maxWidth: 240 });
+  circle.on('mouseover', () => circle.openPopup());
+});
+
+// Fly to function
+function flyTo(lat, lng, label) {
+  map.flyTo([lat, lng], 5, { duration: 1.2 });
+}
+
+// ===== AI INTEGRATION =====
+const systemContext = `Tu esi hantaviruso protrūkio ekspertas ir analitikas. 
+Dabar yra 2026-05-12. Aktyvus MV Hondius kruizinio laivo protrūkis (Andes hantavirusas).
+
+Tikslūs duomenys:
+- Iš viso 11 atvejų: 9 patvirtinti, 2 tikėtini (ECDC 2026-05-12)
+- 3 mirę (2 patvirtintos, 1 tiriama), CFR ~27%
+- Laivas: MV Hondius, Nyderlandai, 147 keleivių ir įgulos iš 23 valstybių
+- Maršrutas: Ushuaia (04-01) → Šv. Elena (04-24) → Tenerifė (05-10) → keleiviai repatrijuoti 05-11
+- Šalys su atvejais: Nyderlandai (2 mirę, keli hospitalizuoti), Šveicarija (1), Prancūzija (1 ICU), JK (1 mirusi, 1 hosp.), Vokietija (1 mirusi)
+- Stebimi: JAV (18 Nebraska/Atlanta), Kanada (3), Singapūras (2), Prancūzija (22 kontaktai)
+- Lietuva: NĖRA atvejų, NVSC stebi
+- ES rizika: LABAI ŽEMA (ECDC)
+- Virusas: Andes hantavirus – vienintelis plintantis tarp žmonių (iš 38 rūšių)
+- Nėra vakcinos, nėra specifinio gydymo
+- Inkubacinis periodas: 1–8 savaitės
+
+Atsakyk lietuviškai, be markdown formatavimo, trumpai ir tiksliai. Pateik faktus, remkis ECDC/WHO šaltiniais.`;
+
+async function askAI(preset) {
+  const question = preset || document.getElementById('aiQuestion').value.trim();
+  if (!question) {
+    document.getElementById('aiQuestion').value = '';
+    document.getElementById('aiQuestion').placeholder = 'Įveskite klausimą...';
+    return;
+  }
+
+  const btn = document.getElementById('aiBtn');
+  const output = document.getElementById('aiOutput');
+  const thinking = document.getElementById('aiThinking');
+
+  btn.disabled = true;
+  btn.textContent = '...';
+  thinking.style.display = 'flex';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemContext,
+        messages: [{ role: 'user', content: question }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.map(c => c.text || '').join('') || 'Atsakymo nepavyko gauti.';
+
+    thinking.style.display = 'none';
+    output.innerHTML = `
+      <div class="ai-header">⬡ CLAUDE AI — ${new Date().toLocaleTimeString('lt-LT')} UTC</div>
+      <div style="color:var(--blue);font-size:10px;margin-bottom:12px;font-family:'DM Mono',monospace">KLAUSIMAS: ${question}</div>
+      <p>${text.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);font-size:9px;color:var(--muted)">
+        Šaltiniai: ECDC 2026-05-12 · WHO DON599 · Claude claude-sonnet-4-20250514
+      </div>`;
+    document.getElementById('aiQuestion').value = '';
+  } catch (err) {
+    thinking.style.display = 'none';
+    output.innerHTML = `<div class="ai-header">⬡ Klaida</div><p style="color:var(--accent)">Nepavyko prisijungti prie AI. Patikrinkite ryšį.</p>`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Analizuoti';
+}
+
+function handleAiKey(e) {
+  if (e.key === 'Enter') askAI();
+}
+
+// Auto-load initial AI analysis
+setTimeout(() => {
+  askAI('Pateik trumpą situacijos apžvalgą: koks MV Hondius protrūkio pavojus Lietuvai ir ką turėtų žinoti gyventojai?');
+}, 800);
+</script>
+</body>
+</html>
