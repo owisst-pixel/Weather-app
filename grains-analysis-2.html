@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRAIN PULSE — Grūdų Rinkos Analizė</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111318;
+    --border: #1e2229;
+    --bull: #00e676;
+    --bear: #ff3d57;
+    --neutral: #ffd600;
+    --text: #e8eaf0;
+    --muted: #5a6072;
+    --accent: #2979ff;
+    --card: #13161c;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(41,121,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(41,121,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+  /* HEADER */
+  header {
+    padding: 28px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .header-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: 3px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo span {
+    color: var(--bull);
+    font-size: 2.2rem;
+  }
+
+  .logo-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: -4px;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--bull);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+
+  /* COMMODITY SELECTOR */
+  .selector-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+
+  .commodity-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 4px;
+  }
+
+  .commodity-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .commodity-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 16px rgba(41,121,255,0.3);
+  }
+
+  /* CONTRACT INFO BAR */
+  .contract-bar {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 24px;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+  }
+
+  .contract-item label {
+    color: var(--muted);
+    font-size: 0.62rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .contract-item .val {
+    color: var(--text);
+    font-size: 0.85rem;
+  }
+
+  .contract-item .val.green { color: var(--bull); }
+  .contract-item .val.red { color: var(--bear); }
+  .contract-item .val.yellow { color: var(--neutral); }
+
+  /* MAIN GRID */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 700px) { .main-grid { grid-template-columns: 1fr; } }
+
+  /* SCENARIO CARD */
+  .scenario-card {
+    background: var(--card);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: transform 0.2s;
+  }
+
+  .scenario-card:hover { transform: translateY(-2px); }
+
+  .scenario-card.bull { border-top: 3px solid var(--bull); }
+  .scenario-card.bear { border-top: 3px solid var(--bear); }
+
+  .card-header {
+    padding: 18px 22px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .scenario-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+  }
+
+  .scenario-label.bull { color: var(--bull); }
+  .scenario-label.bear { color: var(--bear); }
+
+  .probability-ring {
+    text-align: right;
+  }
+
+  .prob-number {
+    font-family: 'Space Mono', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .prob-number.bull { color: var(--bull); }
+  .prob-number.bear { color: var(--bear); }
+
+  .prob-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .prob-bar-wrap {
+    padding: 0 22px 8px;
+  }
+
+  .prob-bar-bg {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .prob-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1s ease;
+  }
+
+  .prob-bar-fill.bull { background: var(--bull); box-shadow: 0 0 8px var(--bull); }
+  .prob-bar-fill.bear { background: var(--bear); box-shadow: 0 0 8px var(--bear); }
+
+  .card-body {
+    padding: 16px 22px 20px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #a0a8b8;
+    min-height: 80px;
+  }
+
+  .card-targets {
+    padding: 0 22px 20px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .target-pill {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    padding: 5px 12px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  .target-pill.tp { background: rgba(0,230,118,0.1); color: var(--bull); border: 1px solid rgba(0,230,118,0.25); }
+  .target-pill.sl { background: rgba(255,61,87,0.1); color: var(--bear); border: 1px solid rgba(255,61,87,0.25); }
+  .target-pill.entry { background: rgba(41,121,255,0.1); color: var(--accent); border: 1px solid rgba(41,121,255,0.25); }
+
+  /* VERDICT BOX */
+  .verdict-box {
+    border-radius: 10px;
+    padding: 22px 28px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .verdict-box.bull-verdict {
+    background: linear-gradient(135deg, rgba(0,230,118,0.08) 0%, rgba(0,230,118,0.02) 100%);
+    border-color: rgba(0,230,118,0.3);
+  }
+
+  .verdict-box.bear-verdict {
+    background: linear-gradient(135deg, rgba(255,61,87,0.08) 0%, rgba(255,61,87,0.02) 100%);
+    border-color: rgba(255,61,87,0.3);
+  }
+
+  .verdict-box.neutral-verdict {
+    background: linear-gradient(135deg, rgba(255,214,0,0.08) 0%, rgba(255,214,0,0.02) 100%);
+    border-color: rgba(255,214,0,0.3);
+  }
+
+  .verdict-icon {
+    font-size: 3rem;
+    line-height: 1;
+  }
+
+  .verdict-text h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+
+  .verdict-text p {
+    font-size: 0.85rem;
+    color: #a0a8b8;
+    max-width: 600px;
+  }
+
+  .verdict-action {
+    margin-left: auto;
+    text-align: center;
+  }
+
+  .action-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 3px;
+    padding: 12px 28px;
+    border-radius: 6px;
+    display: block;
+  }
+
+  .action-badge.long { background: var(--bull); color: #000; }
+  .action-badge.short { background: var(--bear); color: #fff; }
+  .action-badge.wait { background: var(--neutral); color: #000; }
+
+  /* 5-DAY FORECAST */
+  .forecast-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px;
+    margin-bottom: 24px;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 18px;
+    text-transform: uppercase;
+  }
+
+  .forecast-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+
+  @media (max-width: 600px) { .forecast-grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .day-card {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 14px 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+
+  .day-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .day-direction {
+    font-size: 1.4rem;
+    margin-bottom: 6px;
+  }
+
+  .day-prob {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .day-price {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ROLLOVER SECTION */
+  .rollover-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px;
+    margin-bottom: 24px;
+  }
+
+  .rollover-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 600px) { .rollover-grid { grid-template-columns: 1fr; } }
+
+  .rollover-item {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid var(--border);
+  }
+
+  .rollover-item label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .rollover-item .big-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--text);
+  }
+
+  .rollover-item .sub-val {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* AI ANALYSIS */
+  .ai-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 22px;
+    margin-bottom: 24px;
+  }
+
+  .ai-output {
+    font-size: 0.88rem;
+    line-height: 1.75;
+    color: #b0b8cc;
+    white-space: pre-wrap;
+    min-height: 60px;
+  }
+
+  .ai-output .loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+  }
+
+  .dots span {
+    animation: blink 1.4s infinite;
+    display: inline-block;
+  }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes blink {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+  }
+
+  /* BUTTONS */
+  .analyze-btn {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 2.5px;
+    padding: 14px 36px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 0 20px rgba(41,121,255,0.2);
+  }
+
+  .analyze-btn:hover {
+    background: #1a6aff;
+    box-shadow: 0 0 28px rgba(41,121,255,0.35);
+    transform: translateY(-1px);
+  }
+
+  .analyze-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+
+  .refresh-note {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* CORRECTION SIGNAL */
+  .correction-signal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px;
+    margin-bottom: 24px;
+  }
+
+  .signal-row {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .signal-box {
+    flex: 1;
+    min-width: 160px;
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .signal-box label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .signal-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 1.5px;
+  }
+
+  .signal-value.bull { color: var(--bull); }
+  .signal-value.bear { color: var(--bear); }
+  .signal-value.neutral { color: var(--neutral); }
+
+  .timestamp {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-align: right;
+    margin-top: 12px;
+    letter-spacing: 1px;
+  }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 8px 0 16px; }
+
+  /* HIGHLIGHT */
+  .highlight-bull { color: var(--bull); font-weight: 600; }
+  .highlight-bear { color: var(--bear); font-weight: 600; }
+  .highlight-neutral { color: var(--neutral); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <header>
+    <div class="header-inner">
+      <div>
+        <div class="logo">GRAIN<span>PULSE</span></div>
+        <div class="logo-sub">Grūdų rinkos analizė · Trading212 CFD kontraktai</div>
+      </div>
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        AI ANALIZĖ · CLAUDE POWERED
+      </div>
+    </div>
+  </header>
+
+  <!-- COMMODITY SELECTOR -->
+  <div class="selector-row">
+    <button class="commodity-btn active" onclick="selectCommodity(this,'WHEAT','Kvietis','ZW','Jul 2026','2026-07-14','—','+0.0%','USD/bu')">🌾 KVIETIS</button>
+    <button class="commodity-btn" onclick="selectCommodity(this,'CORN','Kukurūzai','ZC','Jul 2026','2026-07-14','—','+0.0%','USD/bu')">🌽 KUKURŪZAI</button>
+    <button class="commodity-btn" onclick="selectCommodity(this,'SOYBEANS','Sojos pupelės','ZS','Jul 2026','2026-07-14','—','+0.0%','USD/bu')">🫘 SOJOS</button>
+    <button class="commodity-btn" onclick="selectCommodity(this,'OATS','Avižos','ZO','Sep 2026','2026-09-12','—','+0.0%','USD/bu')">🌿 AVIŽOS</button>
+    <button class="commodity-btn" onclick="selectCommodity(this,'RICE','Ryžiai','ZR','Sep 2026','2026-09-12','—','+0.0%','USD/cwt')">🍚 RYŽIAI</button>
+  </div>
+
+  <!-- CONTRACT INFO BAR -->
+  <div class="contract-bar" id="contractBar">
+    <div class="contract-item">
+      <label>Instrumentas</label>
+      <div class="val" id="ci-name">Kvietis (Wheat)</div>
+    </div>
+    <div class="contract-item">
+      <label>Simbolis</label>
+      <div class="val" id="ci-symbol">ZW / T212: WHEAT</div>
+    </div>
+    <div class="contract-item">
+      <label>Kontraktas</label>
+      <div class="val yellow" id="ci-contract">Jul 2025</div>
+    </div>
+    <div class="contract-item">
+      <label>Rollover data</label>
+      <div class="val" id="ci-expiry">2025-07-14</div>
+    </div>
+    <div class="contract-item">
+      <label>Kaina</label>
+      <div class="val" id="ci-price">570.25</div>
+    </div>
+    <div class="contract-item">
+      <label>Pokytis</label>
+      <div class="val green" id="ci-change">+2.1%</div>
+    </div>
+    <div class="contract-item">
+      <label>Vienetas</label>
+      <div class="val" id="ci-unit">USD/bu</div>
+    </div>
+    <div class="contract-item">
+      <label>Dienos iki rollover</label>
+      <div class="val yellow" id="ci-days">—</div>
+    </div>
+  </div>
+
+  <!-- ANALYZE BUTTON -->
+  <div class="btn-row">
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      <label style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;">Dabartinė kaina (iš T212)</label>
+      <input type="text" id="priceInput" placeholder="pvz. 532.50" style="font-family:'Space Mono',monospace;font-size:0.9rem;background:var(--card);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:6px;width:160px;outline:none;" oninput="updatePriceFromInput(this.value)">
+    </div>
+    <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">
+      ⚡ PALEISTI AI ANALIZĘ
+    </button>
+    <div class="refresh-note">Analizuojama naudojant Claude AI · Web search įjungtas</div>
+  </div>
+
+  <!-- VERDICT BOX -->
+  <div class="verdict-box neutral-verdict" id="verdictBox">
+    <div class="verdict-icon">⏳</div>
+    <div class="verdict-text">
+      <h2 style="color: var(--neutral)">LAUKIAMA ANALIZĖS</h2>
+      <p>Paspauskite "Paleisti AI analizę" norėdami gauti bullish/bearish scenarijaus tikimybes, kainos korekciją ir trading signalą.</p>
+    </div>
+    <div class="verdict-action">
+      <span class="action-badge wait">—</span>
+    </div>
+  </div>
+
+  <!-- SCENARIOS -->
+  <div class="main-grid">
+    <div class="scenario-card bull">
+      <div class="card-header">
+        <div>
+          <div class="scenario-label bull">▲ BULLISH</div>
+          <div style="font-size:0.72rem;color:var(--muted);font-family:'Space Mono',monospace;margin-top:2px;">KYLANČIOS KAINOS</div>
+        </div>
+        <div class="probability-ring">
+          <div class="prob-number bull" id="bullProb">—</div>
+          <div class="prob-label">tikimybė</div>
+        </div>
+      </div>
+      <div class="prob-bar-wrap">
+        <div class="prob-bar-bg"><div class="prob-bar-fill bull" id="bullBar" style="width:0%"></div></div>
+      </div>
+      <div class="card-body" id="bullText">
+        Analizė dar neatliekama. Paspauskite mygtuką viršuje.
+      </div>
+      <div class="card-targets" id="bullTargets"></div>
+    </div>
+
+    <div class="scenario-card bear">
+      <div class="card-header">
+        <div>
+          <div class="scenario-label bear">▼ BEARISH</div>
+          <div style="font-size:0.72rem;color:var(--muted);font-family:'Space Mono',monospace;margin-top:2px;">KRENTANČIOS KAINOS</div>
+        </div>
+        <div class="probability-ring">
+          <div class="prob-number bear" id="bearProb">—</div>
+          <div class="prob-label">tikimybė</div>
+        </div>
+      </div>
+      <div class="prob-bar-wrap">
+        <div class="prob-bar-bg"><div class="prob-bar-fill bear" id="bearBar" style="width:0%"></div></div>
+      </div>
+      <div class="card-body" id="bearText">
+        Analizė dar neatliekama. Paspauskite mygtuką viršuje.
+      </div>
+      <div class="card-targets" id="bearTargets"></div>
+    </div>
+  </div>
+
+  <!-- KAINOS KOREKCIJOS SIGNALAS -->
+  <div class="correction-signal">
+    <div class="section-title">⚡ KOREKCIJOS SIGNALAS — Posūkio tikimybė</div>
+    <div class="signal-row">
+      <div class="signal-box">
+        <label>Bear → Bull korekcija</label>
+        <div class="signal-value bull" id="corrBullProb">—</div>
+        <div style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);margin-top:4px;" id="corrBullNote">Tikimybė kainai atšokti aukštyn</div>
+      </div>
+      <div class="signal-box">
+        <label>Bull → Bear korekcija</label>
+        <div class="signal-value bear" id="corrBearProb">—</div>
+        <div style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);margin-top:4px;" id="corrBearNote">Tikimybė kainai grįžti žemyn</div>
+      </div>
+      <div class="signal-box">
+        <label>Rekomenduojamas veiksmas</label>
+        <div class="signal-value neutral" id="corrAction">LAUKTI</div>
+        <div style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);margin-top:4px;" id="corrActionNote">Nėra pakankamai duomenų</div>
+      </div>
+      <div class="signal-box">
+        <label>Trend stiprumas</label>
+        <div class="signal-value neutral" id="trendStrength">—</div>
+        <div style="font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);margin-top:4px;" id="trendNote">Momentum rodiklis</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5-DAY FORECAST -->
+  <div class="forecast-section">
+    <div class="section-title">📅 5 DIENŲ KAINOS PROGNOZĖ</div>
+    <div class="forecast-grid" id="forecastGrid">
+      <div class="day-card" style="opacity:0.3"><div class="day-label">D+1</div><div class="day-direction">❔</div><div class="day-prob" style="color:var(--muted)">—</div></div>
+      <div class="day-card" style="opacity:0.3"><div class="day-label">D+2</div><div class="day-direction">❔</div><div class="day-prob" style="color:var(--muted)">—</div></div>
+      <div class="day-card" style="opacity:0.3"><div class="day-label">D+3</div><div class="day-direction">❔</div><div class="day-prob" style="color:var(--muted)">—</div></div>
+      <div class="day-card" style="opacity:0.3"><div class="day-label">D+4</div><div class="day-direction">❔</div><div class="day-prob" style="color:var(--muted)">—</div></div>
+      <div class="day-card" style="opacity:0.3"><div class="day-label">D+5</div><div class="day-direction">❔</div><div class="day-prob" style="color:var(--muted)">—</div></div>
+    </div>
+  </div>
+
+  <!-- ROLLOVER INFO -->
+  <div class="rollover-section">
+    <div class="section-title">🔄 ROLLOVER STRATEGIJA</div>
+    <div class="rollover-grid">
+      <div class="rollover-item">
+        <label>Dienos iki rollover</label>
+        <div class="big-val" id="ro-days">—</div>
+        <div class="sub-val" id="ro-date">—</div>
+      </div>
+      <div class="rollover-item">
+        <label>Pozicijos strategija</label>
+        <div class="big-val" id="ro-strategy">—</div>
+        <div class="sub-val" id="ro-stratNote">—</div>
+      </div>
+      <div class="rollover-item">
+        <label>TP prieš rollover</label>
+        <div class="big-val" id="ro-tp">—</div>
+        <div class="sub-val" id="ro-tpNote">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI DETAILED ANALYSIS -->
+  <div class="ai-section">
+    <div class="section-title" style="margin-bottom:14px;">🤖 AI DETALĖ ANALIZĖ</div>
+    <div class="ai-output" id="aiOutput">
+      <div class="loading"><span style="color:var(--accent);">→</span> Paspauskite "Paleisti AI analizę" norėdami gauti išsamią rinkos analizę lietuvių kalba.</div>
+    </div>
+    <div class="timestamp" id="analysisTimestamp"></div>
+  </div>
+
+</div>
+
+<script>
+// ========================
+// STATE
+// ========================
+let currentCommodity = {
+  code: 'WHEAT',
+  name: 'Kvietis',
+  symbol: 'ZW',
+  contract: 'Jul 2026',
+  expiry: '2026-07-14',
+  price: '—',
+  change: '+0.0%',
+  unit: 'USD/bu'
+};
+
+function updatePriceFromInput(val) {
+  if (val) {
+    currentCommodity.price = val;
+    document.getElementById('ci-price').textContent = val + ' ' + currentCommodity.unit;
+  }
+}
+
+// ========================
+// COMMODITY SELECTOR
+// ========================
+function selectCommodity(btn, code, name, symbol, contract, expiry, price, change, unit) {
+  document.querySelectorAll('.commodity-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentCommodity = { code, name, symbol, contract, expiry, price, change, unit };
+  updateContractBar();
+  resetAnalysis();
+}
+
+function updateContractBar() {
+  const c = currentCommodity;
+  document.getElementById('ci-name').textContent = c.name + ' (' + c.code + ')';
+  document.getElementById('ci-symbol').textContent = c.symbol + ' / T212: ' + c.code;
+  document.getElementById('ci-contract').textContent = c.contract;
+  document.getElementById('ci-expiry').textContent = c.expiry;
+  document.getElementById('ci-price').textContent = c.price + ' ' + c.unit;
+  const chEl = document.getElementById('ci-change');
+  chEl.textContent = c.change;
+  chEl.className = 'val ' + (c.change.startsWith('+') ? 'green' : 'red');
+
+  // Days to rollover
+  const now = new Date();
+  const exp = new Date(c.expiry);
+  const diffDays = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+  const daysEl = document.getElementById('ci-days');
+  daysEl.textContent = diffDays > 0 ? diffDays + ' d.' : 'Pasibaigė';
+  daysEl.className = 'val ' + (diffDays <= 7 ? 'red' : diffDays <= 14 ? 'yellow' : 'green');
+
+  // Rollover section
+  document.getElementById('ro-days').textContent = diffDays > 0 ? diffDays + ' dienų' : 'Pasibaigė';
+  document.getElementById('ro-date').textContent = 'Rollover: ' + c.expiry;
+}
+
+function resetAnalysis() {
+  document.getElementById('bullProb').textContent = '—';
+  document.getElementById('bearProb').textContent = '—';
+  document.getElementById('bullBar').style.width = '0%';
+  document.getElementById('bearBar').style.width = '0%';
+  document.getElementById('bullText').textContent = 'Paspauskite analizės mygtuką.';
+  document.getElementById('bearText').textContent = 'Paspauskite analizės mygtuką.';
+  document.getElementById('bullTargets').innerHTML = '';
+  document.getElementById('bearTargets').innerHTML = '';
+  resetForecast();
+  resetCorrection();
+  document.getElementById('aiOutput').innerHTML = '<div class="loading"><span style="color:var(--accent);">→</span> Paspauskite "Paleisti AI analizę" norėdami gauti analizę.</div>';
+  document.getElementById('analysisTimestamp').textContent = '';
+  setVerdict('neutral', '⏳', 'LAUKIAMA ANALIZĖS', 'Paspauskite mygtuką norėdami gauti scenarijų.', '—');
+}
+
+function resetForecast() {
+  document.getElementById('forecastGrid').innerHTML = [1,2,3,4,5].map(d =>
+    `<div class="day-card" style="opacity:0.3"><div class="day-label">D+${d}</div><div class="day-direction">❔</div><div class="day-prob" style="color:var(--muted)">—</div></div>`
+  ).join('');
+}
+
+function resetCorrection() {
+  ['corrBullProb','corrBearProb','corrAction','trendStrength'].forEach(id => {
+    document.getElementById(id).textContent = '—';
+  });
+}
+
+// ========================
+// VERDICT
+// ========================
+function setVerdict(type, icon, title, desc, action) {
+  const vb = document.getElementById('verdictBox');
+  vb.className = 'verdict-box ' + type + '-verdict';
+  vb.querySelector('.verdict-icon').textContent = icon;
+  const titleEl = vb.querySelector('h2');
+  titleEl.textContent = title;
+  titleEl.style.color = type === 'bull' ? 'var(--bull)' : type === 'bear' ? 'var(--bear)' : 'var(--neutral)';
+  vb.querySelector('p').textContent = desc;
+  const badge = vb.querySelector('.action-badge');
+  badge.textContent = action;
+  badge.className = 'action-badge ' + (action === 'LONG' ? 'long' : action === 'SHORT' ? 'short' : 'wait');
+}
+
+// ========================
+// MAIN ANALYSIS
+// ========================
+async function runAnalysis() {
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="dots"><span>▪</span><span>▪</span><span>▪</span></span> ANALIZUOJAMA...';
+
+  document.getElementById('aiOutput').innerHTML = '<div class="loading"><span style="color:var(--accent);">→</span> Claude AI gauna rinkos duomenis ir skaičiuoja scenarijus<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>';
+
+  const c = currentCommodity;
+  const now = new Date();
+  const exp = new Date(c.expiry);
+  const diffDays = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+
+  const prompt = `Tu esi profesionalus commodity futures analitikas ir trader'is.
+
+Analizuok šią grūdų rinką:
+- Instrumentas: ${c.name} (${c.code})
+- Simbolis: ${c.symbol}
+- Trading212 kontraktas: ${c.contract}
+- Dabartinė kaina: ${c.price} ${c.unit}
+- Dienos pokytis: ${c.change}
+- Dienų iki rollover: ${diffDays}
+- Rollover data: ${c.expiry}
+
+Grąžink TIKTAI JSON, be jokio preamble ar markdown:
+
+{
+  "bullProb": <skaičius 0-100, tikimybė kainai kilti per 5 dienas>,
+  "bearProb": <skaičius 0-100, tikimybė kainai kristi per 5 dienas>,
+  "bullText": "<trumpas bullish scenarijaus aprašas lietuvių kalba, 2-3 sakiniai>",
+  "bearText": "<trumpas bearish scenarijaus aprašas lietuvių kalba, 2-3 sakiniai>",
+  "bullTP": "<TP kaina bullish scenarijui, pvz. 585.00>",
+  "bullEntry": "<rekomenduojama entry kaina long>",
+  "bullSL": "<stop loss long scenarijui>",
+  "bearTP": "<TP kaina bearish scenarijui, pvz. 555.00>",
+  "bearEntry": "<rekomenduojama entry kaina short>",
+  "bearSL": "<stop loss short scenarijui>",
+  "corrBullProb": <tikimybė %, kad kaina atsimuš nuo dugno ir eis aukštyn - bear to bull reversal>,
+  "corrBearProb": <tikimybė %, kad kaina atsimuš nuo viršūnės ir eis žemyn - bull to bear reversal>,
+  "trendStrength": "<STIPRUS / VIDUTINIS / SILPNAS>",
+  "trendDirection": "<BULL / BEAR / NEUTRAL>",
+  "action": "<LONG / SHORT / LAUKTI>",
+  "actionNote": "<vienas sakinys, kodėl šis veiksmas, lietuviškai>",
+  "rolloverStrategy": "<IŠLAIKYTI / UŽDARYTI PRIEŠ ROLLOVER / TP PRIEŠ ROLLOVER>",
+  "rolloverNote": "<kodėl tokia strategija, atsižvelgiant į ${diffDays} likusias dienas>",
+  "rolloverTP": "<ar TP tikėtinas iki rollover: TAIP / MAŽAI TIKĖTINA / NE>",
+  "rolloverTPNote": "<vienas sakinys apie TP tikimybę iki rollover>",
+  "forecast": [
+    {"day": "D+1", "dir": "UP/DOWN/FLAT", "prob": <0-100>, "price": "<kaina>"},
+    {"day": "D+2", "dir": "UP/DOWN/FLAT", "prob": <0-100>, "price": "<kaina>"},
+    {"day": "D+3", "dir": "UP/DOWN/FLAT", "prob": <0-100>, "price": "<kaina>"},
+    {"day": "D+4", "dir": "UP/DOWN/FLAT", "prob": <0-100>, "price": "<kaina>"},
+    {"day": "D+5", "dir": "UP/DOWN/FLAT", "prob": <0-100>, "price": "<kaina>"}
+  ],
+  "detailAnalysis": "<išsami analizė lietuvių kalba, 5-8 sakiniai, apimanti: 1) rinkos kontekstą, 2) techninę analizę, 3) fundamentalius veiksnius, 4) korekcijos tikimybę (bear->bull arba bull->bear), 5) rollover strategiją su ${diffDays} dienomis>"
+}
+
+Rinkos kontekstas: šiandien ${now.toLocaleDateString('lt-LT')}. Atsižvelk į sezoninę grūdų paklausą, USD stiprumą, pasiūlos/paklausos balansą. Grąžink tik gryną JSON.`;
+
+  try {
+    const response = await fetch("https://bold-grass-ec28.owisst.workers.dev", {
+      method: "POST",
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+
+    // Extract text from response
+    let rawText = '';
+    if (data.content) {
+      data.content.forEach(block => {
+        if (block.type === 'text') rawText += block.text;
+      });
+    }
+
+    // Clean and parse JSON
+    const clean = rawText.replace(/```json|```/g, '').trim();
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('JSON nerasta atsakyme');
+
+    const result = JSON.parse(jsonMatch[0]);
+    renderResults(result, diffDays);
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById('aiOutput').innerHTML = `<span style="color:var(--bear);">⚠ Klaida: ${err.message}. Bandykite dar kartą.</span>`;
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '⚡ ATNAUJINTI ANALIZĘ';
+}
+
+// ========================
+// RENDER RESULTS
+// ========================
+function renderResults(r, diffDays) {
+  // Probabilities
+  const bp = parseInt(r.bullProb) || 50;
+  const brp = parseInt(r.bearProb) || 50;
+  document.getElementById('bullProb').textContent = bp + '%';
+  document.getElementById('bearProb').textContent = brp + '%';
+  document.getElementById('bullBar').style.width = bp + '%';
+  document.getElementById('bearBar').style.width = brp + '%';
+
+  // Scenario texts
+  document.getElementById('bullText').textContent = r.bullText || '';
+  document.getElementById('bearText').textContent = r.bearText || '';
+
+  // Targets
+  document.getElementById('bullTargets').innerHTML = `
+    <span class="target-pill entry">ENTRY: ${r.bullEntry}</span>
+    <span class="target-pill tp">TP: ${r.bullTP}</span>
+    <span class="target-pill sl">SL: ${r.bullSL}</span>`;
+  document.getElementById('bearTargets').innerHTML = `
+    <span class="target-pill entry">ENTRY: ${r.bearEntry}</span>
+    <span class="target-pill tp">TP: ${r.bearTP}</span>
+    <span class="target-pill sl">SL: ${r.bearSL}</span>`;
+
+  // Verdict
+  const action = r.action || 'LAUKTI';
+  const isLong = action === 'LONG';
+  const isShort = action === 'SHORT';
+  setVerdict(
+    isLong ? 'bull' : isShort ? 'bear' : 'neutral',
+    isLong ? '📈' : isShort ? '📉' : '⚖️',
+    isLong ? '▲ BULLISH SIGNALAS — LONG' : isShort ? '▼ BEARISH SIGNALAS — SHORT' : '⚖ NEUTRALUS — LAUKTI',
+    r.actionNote || '',
+    action
+  );
+
+  // Correction signals
+  const cbp = parseInt(r.corrBullProb) || 0;
+  const cbrp = parseInt(r.corrBearProb) || 0;
+  const cbEl = document.getElementById('corrBullProb');
+  cbEl.textContent = cbp + '%';
+  cbEl.className = 'signal-value ' + (cbp >= 60 ? 'bull' : cbp >= 40 ? 'neutral' : 'bear');
+  const cbrEl = document.getElementById('corrBearProb');
+  cbrEl.textContent = cbrp + '%';
+  cbrEl.className = 'signal-value ' + (cbrp >= 60 ? 'bear' : cbrp >= 40 ? 'neutral' : 'bull');
+
+  const actionEl = document.getElementById('corrAction');
+  actionEl.textContent = action;
+  actionEl.className = 'signal-value ' + (isLong ? 'bull' : isShort ? 'bear' : 'neutral');
+  document.getElementById('corrActionNote').textContent = r.actionNote || '';
+
+  const ts = r.trendStrength || '—';
+  const td = r.trendDirection || 'NEUTRAL';
+  const tsEl = document.getElementById('trendStrength');
+  tsEl.textContent = ts;
+  tsEl.className = 'signal-value ' + (td === 'BULL' ? 'bull' : td === 'BEAR' ? 'bear' : 'neutral');
+  document.getElementById('trendNote').textContent = 'Kryptis: ' + td;
+
+  // 5-day forecast
+  if (r.forecast && r.forecast.length) {
+    document.getElementById('forecastGrid').innerHTML = r.forecast.map(f => {
+      const iUp = f.dir === 'UP';
+      const isFlat = f.dir === 'FLAT';
+      const color = iUp ? 'var(--bull)' : isFlat ? 'var(--neutral)' : 'var(--bear)';
+      const icon = iUp ? '▲' : isFlat ? '◆' : '▼';
+      return `<div class="day-card">
+        <div class="day-label">${f.day}</div>
+        <div class="day-direction" style="color:${color};font-size:1.6rem;">${icon}</div>
+        <div class="day-prob" style="color:${color}">${f.prob}%</div>
+        <div class="day-price">${f.price}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Rollover
+  document.getElementById('ro-strategy').textContent = r.rolloverStrategy || '—';
+  document.getElementById('ro-stratNote').textContent = r.rolloverNote || '';
+  document.getElementById('ro-tp').textContent = r.rolloverTP || '—';
+  document.getElementById('ro-tpNote').textContent = r.rolloverTPNote || '';
+
+  // AI detail
+  document.getElementById('aiOutput').textContent = r.detailAnalysis || 'Analizė negauta.';
+
+  // Timestamp
+  document.getElementById('analysisTimestamp').textContent =
+    'Atnaujinta: ' + new Date().toLocaleString('lt-LT');
+}
+
+// ========================
+// INIT
+// ========================
+updateContractBar();
+</script>
+</body>
+</html>
