@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medienos vežimo / krovimo pelningumo skaičiuoklė</title>
+<style>
+  :root{
+    --bg:#0d1117;
+    --panel:#151b23;
+    --panel2:#1b232d;
+    --border:#2a3441;
+    --text:#e6edf3;
+    --muted:#8b98a5;
+    --accent:#3fb950;
+    --accent2:#58a6ff;
+    --warn:#f85149;
+    --mono: 'SF Mono', 'Consolas', 'Menlo', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:16px;
+    line-height:1.4;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+  h1{
+    font-size:1.25rem;
+    margin:0 0 4px;
+    font-weight:600;
+  }
+  .subtitle{
+    color:var(--muted);
+    font-size:0.85rem;
+    margin-bottom:20px;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .card h2{
+    font-size:0.95rem;
+    margin:0 0 12px;
+    color:var(--accent2);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-weight:600;
+  }
+  .toggle{
+    position:relative;
+    width:42px;height:24px;
+    background:var(--border);
+    border-radius:14px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .toggle.on{background:var(--accent);}
+  .toggle::after{
+    content:'';
+    position:absolute;
+    top:3px;left:3px;
+    width:18px;height:18px;
+    background:#fff;
+    border-radius:50%;
+    transition:left .15s;
+  }
+  .toggle.on::after{left:21px;}
+  .field{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .field label{
+    font-size:0.85rem;
+    color:var(--text);
+    flex:1;
+  }
+  .field .hint{
+    display:block;
+    color:var(--muted);
+    font-size:0.72rem;
+    margin-top:1px;
+  }
+  input[type="number"]{
+    width:110px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:7px 8px;
+    border-radius:6px;
+    font-family:var(--mono);
+    font-size:0.9rem;
+    text-align:right;
+  }
+  input[type="number"]:focus{outline:none;border-color:var(--accent2);}
+  .radiogroup{
+    display:flex;
+    gap:8px;
+    margin-bottom:12px;
+  }
+  .radiogroup button{
+    flex:1;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--muted);
+    padding:8px 6px;
+    border-radius:6px;
+    font-size:0.82rem;
+    cursor:pointer;
+  }
+  .radiogroup button.active{
+    border-color:var(--accent2);
+    color:var(--text);
+    background:rgba(88,166,255,0.12);
+  }
+  .subsection{
+    border-top:1px solid var(--border);
+    margin-top:10px;
+    padding-top:10px;
+  }
+  .subsection-title{
+    font-size:0.75rem;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    margin-bottom:8px;
+  }
+  .hidden{display:none !important;}
+  .results{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:16px;
+    position:sticky;
+    bottom:8px;
+  }
+  .row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding:6px 0;
+    font-size:0.88rem;
+  }
+  .row.muted{color:var(--muted);font-size:0.78rem;}
+  .row .val{font-family:var(--mono);}
+  .divider{height:1px;background:var(--border);margin:8px 0;}
+  .row.big{
+    font-size:1.3rem;
+    font-weight:700;
+    padding-top:10px;
+  }
+  .row.big .val.pos{color:var(--accent);}
+  .row.big .val.neg{color:var(--warn);}
+  .row.margin .val{font-weight:600;}
+  .row.margin .val.pos{color:var(--accent);}
+  .row.margin .val.neg{color:var(--warn);}
+  .note{
+    font-size:0.72rem;
+    color:var(--muted);
+    margin-top:8px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Vežimo / krovimo pelningumo skaičiuoklė</h1>
+  <div class="subtitle">Įveskite užsakymo duomenis — savikaina ir pelnas atsinaujina automatiškai.</div>
+
+  <!-- BENDRI DUOMENYS -->
+  <div class="card">
+    <h2>Užsakymo duomenys</h2>
+    <div class="field">
+      <label>Medienos kiekis
+        <span class="hint">m³</span>
+      </label>
+      <input type="number" id="kiekis" value="30" step="0.1">
+    </div>
+    <div class="field">
+      <label>Atstumas (pakrovimas → iškrovimas)
+        <span class="hint">km, viena puse</span>
+      </label>
+      <input type="number" id="atstumas" value="150" step="1">
+    </div>
+  </div>
+
+  <!-- KROVIMAS -->
+  <div class="card">
+    <h2>
+      Krovimas
+      <div class="toggle on" id="toggle-krovimas"></div>
+    </h2>
+    <div id="krovimas-body">
+      <div class="radiogroup" id="krovimas-who">
+        <button data-val="mes" class="active">Mes (savo technika)</button>
+        <button data-val="partneris">Partneris</button>
+      </div>
+
+      <div id="krovimas-mes-fields">
+        <div class="field">
+          <label>Krovimo savikaina
+            <span class="hint">€/m³ — degalai, technika, darbuotojas</span>
+          </label>
+          <input type="number" id="krovimo-savikaina" value="2.5" step="0.1">
+        </div>
+      </div>
+
+      <div id="krovimas-partneris-fields" class="hidden">
+        <div class="field">
+          <label>Mokestis partneriui
+            <span class="hint">€/m³</span>
+          </label>
+          <input type="number" id="krovimo-partneris-mokestis" value="3.5" step="0.1">
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Pajamos iš kliento</div>
+        <div class="field">
+          <label>Kaina klientui už krovimą
+            <span class="hint">€/m³</span>
+          </label>
+          <input type="number" id="krovimo-kaina-klientui" value="5" step="0.1">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VEZIMAS -->
+  <div class="card">
+    <h2>
+      Vežimas
+      <div class="toggle on" id="toggle-vezimas"></div>
+    </h2>
+    <div id="vezimas-body">
+      <div class="radiogroup" id="vezimas-who">
+        <button data-val="mes" class="active">Mes (miškavežis)</button>
+        <button data-val="partneris">Partneris</button>
+      </div>
+
+      <div id="vezimas-mes-fields">
+        <div class="field">
+          <label>Miškavežio talpa
+            <span class="hint">m³ per reisą</span>
+          </label>
+          <input type="number" id="talpa" value="30" step="1">
+        </div>
+        <div class="field">
+          <label>Kuro sąnaudos
+            <span class="hint">l/100 km</span>
+          </label>
+          <input type="number" id="kuro-sanaudos" value="38" step="1">
+        </div>
+        <div class="field">
+          <label>Kuro kaina
+            <span class="hint">€/l</span>
+          </label>
+          <input type="number" id="kuro-kaina" value="1.5" step="0.01">
+        </div>
+        <div class="field">
+          <label>Kitos sąnaudos
+            <span class="hint">€/km — remontas, amortizacija, draudimas</span>
+          </label>
+          <input type="number" id="kitos-sanaudos-km" value="0.35" step="0.01">
+        </div>
+        <div class="field">
+          <label>Vairuotojo atlyginimas
+            <span class="hint">€/km</span>
+          </label>
+          <input type="number" id="vairuotojo-km" value="0.25" step="0.01">
+        </div>
+      </div>
+
+      <div id="vezimas-partneris-fields" class="hidden">
+        <div class="field">
+          <label>Mokestis partneriui
+            <span class="hint">€/m³</span>
+          </label>
+          <input type="number" id="vezimo-partneris-mokestis" value="12" step="0.1">
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Pajamos iš kliento</div>
+        <div class="radiogroup" id="vezimo-kainos-tipas">
+          <button data-val="tarifas" class="active">€/m³ už 1 km</button>
+          <button data-val="fiksuota">Fiksuota €/m³</button>
+        </div>
+        <div class="field" id="vezimo-tarifas-field">
+          <label>Tarifas
+            <span class="hint">€/m³/km</span>
+          </label>
+          <input type="number" id="vezimo-tarifas" value="0.12" step="0.005">
+        </div>
+        <div class="field hidden" id="vezimo-fiksuota-field">
+          <label>Kaina klientui
+            <span class="hint">€/m³</span>
+          </label>
+          <input type="number" id="vezimo-fiksuota-kaina" value="18" step="0.5">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REZULTATAI -->
+  <div class="results">
+    <div class="row muted" id="reisu-row">
+      <span>Reisų skaičius (savo miškavežiu)</span>
+      <span class="val" id="r-reisai">—</span>
+    </div>
+    <div class="row">
+      <span>Savikaina</span>
+      <span class="val" id="r-savikaina">0 €</span>
+    </div>
+    <div class="row">
+      <span>Pajamos</span>
+      <span class="val" id="r-pajamos">0 €</span>
+    </div>
+    <div class="divider"></div>
+    <div class="row big">
+      <span>Pelnas</span>
+      <span class="val" id="r-pelnas">0 €</span>
+    </div>
+    <div class="row margin">
+      <span>Pelno marža</span>
+      <span class="val" id="r-marza">0 %</span>
+    </div>
+    <div class="row muted">
+      <span>Pelnas vienam m³</span>
+      <span class="val" id="r-vienam-m3">0 €</span>
+    </div>
+    <div class="note">Savikaina ir kainos yra orientacinės — koreguokite pagal savo realius tarifus ir sąnaudas.</div>
+  </div>
+</div>
+
+<script>
+  const state = {
+    krovimasOn: true,
+    vezimasOn: true,
+    krovimasWho: 'mes',
+    vezimasWho: 'mes',
+    vezimoKainosTipas: 'tarifas'
+  };
+
+  const $ = id => document.getElementById(id);
+
+  function setupToggle(id, key, onSection){
+    const el = $(id);
+    el.addEventListener('click', () => {
+      state[key] = !state[key];
+      el.classList.toggle('on', state[key]);
+      onSection.classList.toggle('hidden', !state[key]);
+      calculate();
+    });
+  }
+  setupToggle('toggle-krovimas', 'krovimasOn', $('krovimas-body'));
+  setupToggle('toggle-vezimas', 'vezimasOn', $('vezimas-body'));
+
+  function setupRadioGroup(containerId, stateKey, onChange){
+    const container = $(containerId);
+    container.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state[stateKey] = btn.dataset.val;
+        onChange(btn.dataset.val);
+        calculate();
+      });
+    });
+  }
+
+  setupRadioGroup('krovimas-who', 'krovimasWho', (val) => {
+    $('krovimas-mes-fields').classList.toggle('hidden', val !== 'mes');
+    $('krovimas-partneris-fields').classList.toggle('hidden', val !== 'partneris');
+  });
+
+  setupRadioGroup('vezimas-who', 'vezimasWho', (val) => {
+    $('vezimas-mes-fields').classList.toggle('hidden', val !== 'mes');
+    $('vezimas-partneris-fields').classList.toggle('hidden', val !== 'partneris');
+    $('reisu-row').classList.toggle('hidden', val !== 'mes');
+  });
+
+  setupRadioGroup('vezimo-kainos-tipas', 'vezimoKainosTipas', (val) => {
+    $('vezimo-tarifas-field').classList.toggle('hidden', val !== 'tarifas');
+    $('vezimo-fiksuota-field').classList.toggle('hidden', val !== 'fiksuota');
+  });
+
+  document.querySelectorAll('input[type="number"]').forEach(inp => {
+    inp.addEventListener('input', calculate);
+  });
+
+  function fmt(n){
+    return n.toLocaleString('lt-LT', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+  }
+
+  function calculate(){
+    const kiekis = parseFloat($('kiekis').value) || 0;
+    const atstumas = parseFloat($('atstumas').value) || 0;
+
+    let savikaina = 0;
+    let pajamos = 0;
+    let reisuSkaicius = null;
+
+    // KROVIMAS
+    if (state.krovimasOn) {
+      if (state.krovimasWho === 'mes') {
+        const ks = parseFloat($('krovimo-savikaina').value) || 0;
+        savikaina += ks * kiekis;
+      } else {
+        const km = parseFloat($('krovimo-partneris-mokestis').value) || 0;
+        savikaina += km * kiekis;
+      }
+      const kk = parseFloat($('krovimo-kaina-klientui').value) || 0;
+      pajamos += kk * kiekis;
+    }
+
+    // VEZIMAS
+    if (state.vezimasOn) {
+      if (state.vezimasWho === 'mes') {
+        const talpa = Math.max(parseFloat($('talpa').value) || 1, 0.01);
+        reisuSkaicius = Math.ceil(kiekis / talpa);
+        const bendrasAtstumas = reisuSkaicius * atstumas * 2; // į abi puses
+
+        const kuroL100 = parseFloat($('kuro-sanaudos').value) || 0;
+        const kuroKaina = parseFloat($('kuro-kaina').value) || 0;
+        const kitosKm = parseFloat($('kitos-sanaudos-km').value) || 0;
+        const vairKm = parseFloat($('vairuotojo-km').value) || 0;
+
+        const kuroSavikainaKm = (kuroL100/100) * kuroKaina;
+        const vezimoSavikaina = bendrasAtstumas * (kuroSavikainaKm + kitosKm + vairKm);
+        savikaina += vezimoSavikaina;
+      } else {
+        const pm = parseFloat($('vezimo-partneris-mokestis').value) || 0;
+        savikaina += pm * kiekis;
+      }
+
+      if (state.vezimoKainosTipas === 'tarifas') {
+        const tarifas = parseFloat($('vezimo-tarifas').value) || 0;
+        pajamos += tarifas * kiekis * atstumas;
+      } else {
+        const fk = parseFloat($('vezimo-fiksuota-kaina').value) || 0;
+        pajamos += fk * kiekis;
+      }
+    }
+
+    const pelnas = pajamos - savikaina;
+    const marza = pajamos > 0 ? (pelnas / pajamos * 100) : 0;
+    const pelnasM3 = kiekis > 0 ? pelnas / kiekis : 0;
+
+    $('r-reisai').textContent = reisuSkaicius !== null ? reisuSkaicius : '—';
+    $('r-savikaina').textContent = fmt(savikaina);
+    $('r-pajamos').textContent = fmt(pajamos);
+
+    const pelnasEl = $('r-pelnas');
+    pelnasEl.textContent = fmt(pelnas);
+    pelnasEl.className = 'val ' + (pelnas >= 0 ? 'pos' : 'neg');
+
+    const marzaEl = $('r-marza');
+    marzaEl.textContent = marza.toFixed(1) + ' %';
+    marzaEl.className = 'val ' + (marza >= 0 ? 'pos' : 'neg');
+
+    $('r-vienam-m3').textContent = fmt(pelnasM3);
+  }
+
+  calculate();
+</script>
+</body>
+</html>
