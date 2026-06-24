@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medienos vežimo / krovimo pelningumo skaičiuoklė</title>
+<style>
+  :root{
+    --bg:#f5f6f8;
+    --panel:#ffffff;
+    --panel2:#f1f3f5;
+    --border:#dde2e7;
+    --text:#1b232d;
+    --muted:#69727d;
+    --accent:#1a7f37;
+    --accent2:#0969da;
+    --warn:#cf222e;
+    --mono: 'SF Mono', 'Consolas', 'Menlo', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:16px;
+    line-height:1.4;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+  h1{
+    font-size:1.25rem;
+    margin:0 0 4px;
+    font-weight:600;
+  }
+  .subtitle{
+    color:var(--muted);
+    font-size:0.85rem;
+    margin-bottom:20px;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:16px;
+    margin-bottom:14px;
+    box-shadow:0 1px 3px rgba(27,35,45,0.06);
+  }
+  .card h2{
+    font-size:0.95rem;
+    margin:0 0 12px;
+    color:var(--accent2);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-weight:600;
+  }
+  .toggle{
+    position:relative;
+    width:38px;height:22px;
+    background:#c4cad1;
+    border-radius:13px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .toggle.on{background:var(--accent);}
+  .toggle::after{
+    content:'';
+    position:absolute;
+    top:3px;left:3px;
+    width:16px;height:16px;
+    background:#fff;
+    border-radius:50%;
+    transition:left .15s;
+  }
+  .toggle.on::after{left:19px;}
+  .field{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .field label{
+    font-size:0.85rem;
+    color:var(--text);
+    flex:1;
+  }
+  .field .hint{
+    display:block;
+    color:var(--muted);
+    font-size:0.72rem;
+    margin-top:1px;
+  }
+  input[type="number"]{
+    width:100px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:7px 8px;
+    border-radius:6px;
+    font-family:var(--mono);
+    font-size:0.9rem;
+    text-align:right;
+  }
+  input[type="number"]:focus{outline:none;border-color:var(--accent2);}
+  .subsection{
+    border-top:1px solid var(--border);
+    margin-top:12px;
+    padding-top:12px;
+  }
+  .subsection-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+  }
+  .subsection-title{
+    font-size:0.78rem;
+    color:var(--text);
+    font-weight:600;
+  }
+  .subsection-title .hint-inline{
+    display:block;
+    color:var(--muted);
+    font-size:0.7rem;
+    font-weight:400;
+    margin-top:1px;
+  }
+  .label-title{
+    font-size:0.75rem;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    margin-bottom:8px;
+  }
+  .hidden{display:none !important;}
+  .subtotal{
+    font-size:0.76rem;
+    color:var(--muted);
+    text-align:right;
+    margin-top:-2px;
+    margin-bottom:6px;
+    font-family:var(--mono);
+  }
+  .results{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:16px;
+    position:sticky;
+    bottom:8px;
+    box-shadow:0 1px 3px rgba(27,35,45,0.06);
+  }
+  .row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding:6px 0;
+    font-size:0.88rem;
+  }
+  .row.muted{color:var(--muted);font-size:0.78rem;}
+  .row .val{font-family:var(--mono);}
+  .divider{height:1px;background:var(--border);margin:8px 0;}
+  .row.big{
+    font-size:1.3rem;
+    font-weight:700;
+    padding-top:10px;
+  }
+  .row.big .val.pos{color:var(--accent);}
+  .row.big .val.neg{color:var(--warn);}
+  .row.margin .val{font-weight:600;}
+  .row.margin .val.pos{color:var(--accent);}
+  .row.margin .val.neg{color:var(--warn);}
+  .note{
+    font-size:0.72rem;
+    color:var(--muted);
+    margin-top:8px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Vežimo / krovimo pelningumo skaičiuoklė</h1>
+  <div class="subtitle">Įveskite konkretaus užsakymo duomenis (pvz. 150 m³, 380 km) — pelnas atsinaujina automatiškai.</div>
+
+  <!-- BENDRI DUOMENYS -->
+  <div class="card">
+    <h2>Užsakymo duomenys</h2>
+    <div class="field">
+      <label>Medienos kiekis
+        <span class="hint">m³</span>
+      </label>
+      <input type="number" id="kiekis" value="150" step="1">
+    </div>
+    <div class="field">
+      <label>Atstumas (pakrovimas → iškrovimas)
+        <span class="hint">km, viena puse</span>
+      </label>
+      <input type="number" id="atstumas" value="380" step="1">
+    </div>
+  </div>
+
+  <!-- KROVIMAS -->
+  <div class="card">
+    <h2>
+      Krovimas
+      <div class="toggle on" id="toggle-krovimas"></div>
+    </h2>
+    <div id="krovimas-body">
+      <div class="field">
+        <label>Dienų skaičius
+          <span class="hint">kiek dienų buvo krauta</span>
+        </label>
+        <input type="number" id="krovimo-dienos" value="2" step="1">
+      </div>
+      <div class="field">
+        <label>Kroviko atlyginimas
+          <span class="hint">€/dieną</span>
+        </label>
+        <input type="number" id="krovimo-atlyginimas" value="60" step="5">
+      </div>
+      <div class="field">
+        <label>Sudeginto kuro kiekis
+          <span class="hint">litrai, viso krovimo darbams</span>
+        </label>
+        <input type="number" id="krovimo-kuro-litrai" value="80" step="5">
+      </div>
+      <div class="field">
+        <label>Kuro kaina
+          <span class="hint">€/l</span>
+        </label>
+        <input type="number" id="krovimo-kuro-kaina" value="1.5" step="0.01">
+      </div>
+      <div class="subtotal" id="subtotal-krovimas">Krovimo savikaina: 0 €</div>
+    </div>
+  </div>
+
+  <!-- VEZIMAS -->
+  <div class="card">
+    <h2>
+      Vežimas
+      <div class="toggle on" id="toggle-vezimas"></div>
+    </h2>
+    <div id="vezimas-body">
+
+      <!-- MUSU TRANSPORTAS -->
+      <div class="subsection">
+        <div class="subsection-header">
+          <div class="subsection-title">Mūsų transportas
+            <span class="hint-inline">savikaina = kuras + vairuotojo atlyginimas</span>
+          </div>
+          <div class="toggle on" id="toggle-musu"></div>
+        </div>
+        <div id="musu-body">
+          <div class="field">
+            <label>Reisų skaičius (mūsų sunkvežimiu)</label>
+            <input type="number" id="reisai-musu" value="3" step="1">
+          </div>
+
+          <div class="subsection-header" style="margin-top:8px;">
+            <span class="label-title" style="margin:0;">Kuro sąnaudos</span>
+            <div class="toggle on" id="toggle-kuras"></div>
+          </div>
+          <div id="kuras-body">
+            <div class="field">
+              <label>Kuro sąnaudos
+                <span class="hint">l/100 km</span>
+              </label>
+              <input type="number" id="kuro-sanaudos" value="38" step="1">
+            </div>
+            <div class="field">
+              <label>Kuro kaina
+                <span class="hint">€/l</span>
+              </label>
+              <input type="number" id="kuro-kaina" value="1.5" step="0.01">
+            </div>
+          </div>
+
+          <div class="subsection-header" style="margin-top:8px;">
+            <span class="label-title" style="margin:0;">Vairuotojo atlyginimas</span>
+            <div class="toggle on" id="toggle-atlyginimas"></div>
+          </div>
+          <div id="atlyginimas-body">
+            <div class="field">
+              <label>Atlyginimas
+                <span class="hint">€/dieną</span>
+              </label>
+              <input type="number" id="atlyginimas-diena" value="70" step="5">
+            </div>
+            <div class="field">
+              <label>Dienų skaičius
+                <span class="hint">kelionei atlikti</span>
+              </label>
+              <input type="number" id="dienu-skaicius" value="2" step="1">
+            </div>
+          </div>
+
+          <div class="subtotal" id="subtotal-musu">Mūsų transporto savikaina: 0 €</div>
+        </div>
+      </div>
+
+      <!-- PARTNERIO TRANSPORTAS -->
+      <div class="subsection">
+        <div class="subsection-header">
+          <div class="subsection-title">Partnerio transportas</div>
+          <div class="toggle on" id="toggle-partneris"></div>
+        </div>
+        <div id="partneris-body">
+          <div class="field">
+            <label>Reisų skaičius (partnerio sunkvežimiu)</label>
+            <input type="number" id="reisai-partnerio" value="2" step="1">
+          </div>
+          <div class="field">
+            <label>Mokestis partneriui
+              <span class="hint">€/reisą</span>
+            </label>
+            <input type="number" id="partnerio-mokestis" value="280" step="5">
+          </div>
+          <div class="subtotal" id="subtotal-partneris">Partnerio savikaina: 0 €</div>
+        </div>
+      </div>
+
+      <!-- TARPININKAVIMO MOKESTIS -->
+      <div class="subsection">
+        <div class="subsection-header">
+          <div class="subsection-title">Tarpininkavimo mokestis</div>
+          <div class="toggle" id="toggle-tarpininkavimas"></div>
+        </div>
+        <div id="tarpininkavimas-body" class="hidden">
+          <div class="field">
+            <label>Mokestis
+              <span class="hint">€/m³</span>
+            </label>
+            <input type="number" id="tarpininkavimo-mokestis" value="0.85" step="0.05">
+          </div>
+          <div class="subtotal" id="subtotal-tarpininkavimas">Tarpininkavimo savikaina: 0 €</div>
+        </div>
+      </div>
+
+      <!-- PAJAMOS -->
+      <div class="subsection">
+        <div class="subsection-title" style="margin-bottom:10px;">Pajamos iš kliento</div>
+        <div class="field">
+          <label>Kaina klientui
+            <span class="hint">fiksuota €/m³ už pristatytą medieną (apima krovimą ir vežimą)</span>
+          </label>
+          <input type="number" id="vezimo-fiksuota-kaina" value="18" step="0.5">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- REZULTATAI -->
+  <div class="results">
+    <div class="row muted">
+      <span>Reisų skaičius (mūsų + partnerio)</span>
+      <span class="val" id="r-reisai">0 + 0</span>
+    </div>
+    <div class="row">
+      <span>Savikaina</span>
+      <span class="val" id="r-savikaina">0 €</span>
+    </div>
+    <div class="row">
+      <span>Pajamos</span>
+      <span class="val" id="r-pajamos">0 €</span>
+    </div>
+    <div class="divider"></div>
+    <div class="row big">
+      <span>Pelnas</span>
+      <span class="val" id="r-pelnas">0 €</span>
+    </div>
+    <div class="row margin">
+      <span>Pelno marža</span>
+      <span class="val" id="r-marza">0 %</span>
+    </div>
+    <div class="row muted">
+      <span>Pelnas vienam m³</span>
+      <span class="val" id="r-vienam-m3">0 €</span>
+    </div>
+    <div class="note">Preliminarus įvertinimas — koreguokite pagal realius duomenis.</div>
+  </div>
+</div>
+
+<script>
+  const state = {
+    krovimasOn: true,
+    vezimasOn: true,
+    musuOn: true,
+    kurasOn: true,
+    atlyginimasOn: true,
+    partnerisOn: true,
+    tarpininkavimasOn: false
+  };
+
+  const $ = id => document.getElementById(id);
+
+  function setupToggle(toggleId, key, bodyEl){
+    const el = $(toggleId);
+    el.addEventListener('click', () => {
+      state[key] = !state[key];
+      el.classList.toggle('on', state[key]);
+      bodyEl.classList.toggle('hidden', !state[key]);
+      calculate();
+    });
+  }
+  setupToggle('toggle-krovimas', 'krovimasOn', $('krovimas-body'));
+  setupToggle('toggle-vezimas', 'vezimasOn', $('vezimas-body'));
+  setupToggle('toggle-musu', 'musuOn', $('musu-body'));
+  setupToggle('toggle-kuras', 'kurasOn', $('kuras-body'));
+  setupToggle('toggle-atlyginimas', 'atlyginimasOn', $('atlyginimas-body'));
+  setupToggle('toggle-partneris', 'partnerisOn', $('partneris-body'));
+  setupToggle('toggle-tarpininkavimas', 'tarpininkavimasOn', $('tarpininkavimas-body'));
+
+  document.querySelectorAll('input[type="number"]').forEach(inp => {
+    inp.addEventListener('input', calculate);
+  });
+
+  function fmt(n){
+    return n.toLocaleString('lt-LT', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+  }
+
+  function calculate(){
+    const kiekis = parseFloat($('kiekis').value) || 0;
+    const atstumas = parseFloat($('atstumas').value) || 0;
+
+    let savikaina = 0;
+    let pajamos = 0;
+
+    // KROVIMAS
+    if (state.krovimasOn) {
+      const dienos = parseFloat($('krovimo-dienos').value) || 0;
+      const atlyginimas = parseFloat($('krovimo-atlyginimas').value) || 0;
+      const kuroLitrai = parseFloat($('krovimo-kuro-litrai').value) || 0;
+      const kuroKaina = parseFloat($('krovimo-kuro-kaina').value) || 0;
+      const krovimoSavikaina = (dienos * atlyginimas) + (kuroLitrai * kuroKaina);
+      savikaina += krovimoSavikaina;
+      $('subtotal-krovimas').textContent = `Krovimo savikaina: ${fmt(krovimoSavikaina)}`;
+    }
+
+    let reisaiMusu = 0;
+    let reisaiPartnerio = 0;
+
+    if (state.vezimasOn) {
+
+      // MUSU TRANSPORTAS
+      let musuSavikaina = 0;
+      if (state.musuOn) {
+        reisaiMusu = parseFloat($('reisai-musu').value) || 0;
+
+        if (state.kurasOn) {
+          const kuroL100 = parseFloat($('kuro-sanaudos').value) || 0;
+          const kuroKaina = parseFloat($('kuro-kaina').value) || 0;
+          const kuroSavikainaKm = (kuroL100/100) * kuroKaina;
+          musuSavikaina += reisaiMusu * atstumas * 2 * kuroSavikainaKm;
+        }
+        if (state.atlyginimasOn) {
+          const atlyginimasDiena = parseFloat($('atlyginimas-diena').value) || 0;
+          const dienuSkaicius = parseFloat($('dienu-skaicius').value) || 0;
+          musuSavikaina += atlyginimasDiena * dienuSkaicius;
+        }
+      }
+      savikaina += musuSavikaina;
+      $('subtotal-musu').textContent = `Mūsų transporto savikaina: ${fmt(musuSavikaina)}`;
+
+      // PARTNERIO TRANSPORTAS
+      let partneriosSavikaina = 0;
+      if (state.partnerisOn) {
+        reisaiPartnerio = parseFloat($('reisai-partnerio').value) || 0;
+        const mokestisUzReisa = parseFloat($('partnerio-mokestis').value) || 0;
+        partneriosSavikaina = reisaiPartnerio * mokestisUzReisa;
+      }
+      savikaina += partneriosSavikaina;
+      $('subtotal-partneris').textContent = `Partnerio savikaina: ${fmt(partneriosSavikaina)}`;
+
+      // TARPININKAVIMO MOKESTIS
+      let tarpSavikaina = 0;
+      if (state.tarpininkavimasOn) {
+        const tarpRate = parseFloat($('tarpininkavimo-mokestis').value) || 0;
+        tarpSavikaina = tarpRate * kiekis;
+      }
+      savikaina += tarpSavikaina;
+      $('subtotal-tarpininkavimas').textContent = `Tarpininkavimo savikaina: ${fmt(tarpSavikaina)}`;
+
+      // PAJAMOS UZ VEZIMA
+      const fk = parseFloat($('vezimo-fiksuota-kaina').value) || 0;
+      pajamos += fk * kiekis;
+    }
+
+    const pelnas = pajamos - savikaina;
+    const marza = pajamos > 0 ? (pelnas / pajamos * 100) : 0;
+    const pelnasM3 = kiekis > 0 ? pelnas / kiekis : 0;
+
+    $('r-reisai').textContent = `${reisaiMusu} + ${reisaiPartnerio}`;
+    $('r-savikaina').textContent = fmt(savikaina);
+    $('r-pajamos').textContent = fmt(pajamos);
+
+    const pelnasEl = $('r-pelnas');
+    pelnasEl.textContent = fmt(pelnas);
+    pelnasEl.className = 'val ' + (pelnas >= 0 ? 'pos' : 'neg');
+
+    const marzaEl = $('r-marza');
+    marzaEl.textContent = marza.toFixed(1) + ' %';
+    marzaEl.className = 'val ' + (marza >= 0 ? 'pos' : 'neg');
+
+    $('r-vienam-m3').textContent = fmt(pelnasM3);
+  }
+
+  calculate();
+</script>
+</body>
+</html>
