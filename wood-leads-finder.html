@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wood Leads Finder</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root{
+    --ink:#1C2321;
+    --oak:#8B5E34;
+    --oak-dark:#6b4726;
+    --moss:#5C6B4F;
+    --paper:#EFE9DD;
+    --paper-dark:#e2dbc9;
+    --amber:#C9962E;
+    --line:#d3c9b4;
+    --danger:#a13f2b;
+    --good:#4f7a52;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:'Fraunces', serif; margin:0; letter-spacing:-0.01em;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+
+  header{
+    background:var(--ink);
+    color:var(--paper);
+    padding:18px 20px 14px;
+    position:sticky; top:0; z-index:50;
+  }
+  header .top{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  header h1{font-size:22px; font-weight:600; color:var(--paper);}
+  header h1 span{color:var(--amber);}
+  header .tag{font-size:11px; color:#a8a396; font-family:'IBM Plex Mono',monospace; letter-spacing:.04em;}
+
+  nav{display:flex; gap:4px; margin-top:14px;}
+  nav button{
+    background:none; border:none; color:#c9c4b6; font-family:'IBM Plex Sans',sans-serif;
+    font-size:13px; font-weight:500; padding:9px 14px; cursor:pointer; border-radius:6px 6px 0 0;
+    border-bottom:2px solid transparent;
+  }
+  nav button.active{color:var(--paper); border-bottom:2px solid var(--amber); background:rgba(255,255,255,0.04);}
+
+  main{max-width:960px; margin:0 auto; padding:20px 16px 80px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .panel{background:#fff; border:1px solid var(--line); border-radius:10px; padding:18px; margin-bottom:16px;}
+
+  .search-form{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media(max-width:560px){.search-form{grid-template-columns:1fr;}}
+  label{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--oak-dark); font-weight:600; display:block; margin-bottom:5px;}
+  select, input[type=text]{
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:7px; font-size:15px;
+    font-family:'IBM Plex Sans',sans-serif; background:var(--paper); color:var(--ink);
+  }
+  select:focus, input:focus{outline:2px solid var(--amber); outline-offset:1px;}
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    background:var(--ink); color:var(--paper); border:none; border-radius:7px;
+    padding:11px 18px; font-size:14px; font-weight:600; cursor:pointer; font-family:'IBM Plex Sans',sans-serif;
+  }
+  .btn:hover{background:#2c342f;}
+  .btn:disabled{opacity:.5; cursor:wait;}
+  .btn.amber{background:var(--amber); color:var(--ink);}
+  .btn.amber:hover{background:#b7852a;}
+  .btn.ghost{background:none; border:1px solid var(--line); color:var(--ink);}
+  .btn.small{padding:6px 11px; font-size:12px;}
+  .btn.danger{background:none; color:var(--danger); border:1px solid #e0c3bb;}
+
+  .filters{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+  .filters label{
+    display:flex; align-items:center; gap:6px; font-size:12px; font-weight:500; text-transform:none;
+    letter-spacing:0; color:var(--ink); background:var(--paper); border:1px solid var(--line);
+    padding:6px 10px; border-radius:20px; cursor:pointer;
+  }
+  .filters input{width:auto; margin:0;}
+
+  .status-line{font-size:13px; color:#6a6355; font-family:'IBM Plex Mono',monospace; margin:10px 0;}
+
+  .lead-card{
+    border:1px solid var(--line); border-left:4px solid var(--oak); border-radius:8px;
+    padding:14px 16px; margin-bottom:12px; background:#fff; position:relative;
+  }
+  .lead-card.saved{border-left-color:var(--good);}
+  .lead-top{display:flex; justify-content:space-between; gap:10px; align-items:flex-start;}
+  .lead-name{font-family:'Fraunces',serif; font-size:17px; font-weight:600;}
+  .lead-type{font-size:11px; color:var(--moss); font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-top:2px;}
+  .score{
+    font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; color:var(--ink);
+    background:var(--amber); border-radius:20px; padding:3px 10px; white-space:nowrap; min-width:44px; text-align:center;
+  }
+  .lead-meta{font-size:13px; margin-top:8px; line-height:1.7; color:#3a382f;}
+  .lead-meta a{color:var(--oak-dark);}
+  .lead-notes{font-size:13px; color:#5c574a; margin-top:8px; font-style:italic; border-top:1px dashed var(--line); padding-top:8px;}
+  .lead-actions{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
+
+  .letter-box{margin-top:12px; border-top:1px solid var(--line); padding-top:12px;}
+  .letter-box select{width:auto; display:inline-block; margin-right:8px;}
+  textarea.letter-out{
+    width:100%; min-height:160px; margin-top:10px; font-family:'IBM Plex Mono',monospace; font-size:13px;
+    padding:12px; border:1px solid var(--line); border-radius:7px; background:var(--paper); color:var(--ink);
+  }
+
+  .empty{text-align:center; padding:50px 20px; color:#8a8474;}
+  .empty h3{font-family:'Fraunces',serif; color:#5c574a; margin-bottom:8px;}
+
+  select#crmStatus, .crm-status-select{width:auto;}
+  .crm-row{display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap;}
+
+  .spinner{
+    display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.35);
+    border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  ::placeholder{color:#a39d8c;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <h1>Wood Leads <span>Finder</span></h1>
+    <div class="tag">MEDIENOS &amp; GRANULIŲ B2B PAIEŠKA</div>
+  </div>
+  <nav>
+    <button class="active" data-view="search">Paieška</button>
+    <button data-view="crm">CRM</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- SEARCH VIEW -->
+  <section id="view-search" class="view active">
+    <div class="panel">
+      <div class="search-form">
+        <div>
+          <label>Produktas</label>
+          <select id="product">
+            <option value="Wood Pellets">Wood Pellets (medžio granulės)</option>
+            <option value="Wood Panels / Boards (non-certified)">Wood Panels / Boards (plokštės, be sertifikato)</option>
+            <option value="Sawn Timber">Sawn Timber (pjautinė mediena)</option>
+            <option value="custom">Kita (įvesti)</option>
+          </select>
+          <input type="text" id="productCustom" placeholder="Įvesk produktą..." style="margin-top:8px; display:none;">
+        </div>
+        <div>
+          <label>Šalis</label>
+          <select id="country">
+            <option>Serbia</option>
+            <option>Bosnia and Herzegovina</option>
+            <option>North Macedonia</option>
+            <option>Turkey</option>
+            <option>Albania</option>
+            <option value="custom">Kita (įvesti)</option>
+          </select>
+          <input type="text" id="countryCustom" placeholder="Įvesk šalį..." style="margin-top:8px; display:none;">
+        </div>
+      </div>
+      <div class="filters">
+        <label><input type="checkbox" value="wholesaler" checked> Medienos didmenininkai</label>
+        <label><input type="checkbox" value="building" checked> Statybinių medžiagų prekybininkai</label>
+        <label><input type="checkbox" value="pellet" checked> Granulių distributoriai</label>
+        <label><input type="checkbox" value="furniture" checked> Baldų gamintojai</label>
+        <label><input type="checkbox" value="importer" checked> Plokščių importuotojai</label>
+      </div>
+      <div style="margin-top:16px;">
+        <button class="btn amber" id="searchBtn" onclick="searchBuyers()">Search Buyers</button>
+      </div>
+      <div class="status-line" id="searchStatus"></div>
+    </div>
+
+    <div id="results"></div>
+  </section>
+
+  <!-- CRM VIEW -->
+  <section id="view-crm" class="view">
+    <div class="panel">
+      <h2 style="font-size:18px;">Išsaugoti pirkėjai</h2>
+      <div class="status-line" id="crmStatus"></div>
+    </div>
+    <div id="crmList"></div>
+  </section>
+
+</main>
+
+<script>
+/* ---------- helpers ---------- */
+function el(id){return document.getElementById(id);}
+function esc(s){return (s||'').replace(/[&<>"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+document.querySelectorAll('nav button').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('nav button').forEach(function(x){x.classList.remove('active');});
+    document.querySelectorAll('.view').forEach(function(x){x.classList.remove('active');});
+    b.classList.add('active');
+    el('view-'+b.dataset.view).classList.add('active');
+    if(b.dataset.view==='crm') renderCRM();
+  });
+});
+
+el('product').addEventListener('change', function(){
+  el('productCustom').style.display = this.value==='custom' ? 'block':'none';
+});
+el('country').addEventListener('change', function(){
+  el('countryCustom').style.display = this.value==='custom' ? 'block':'none';
+});
+
+/* ---------- storage helpers (personal, not shared) ----------
+   Real window.storage can be unstable in some environments.
+   If it fails, we fall back to an in-memory store so the tool
+   keeps working for the current session, and we warn the user. */
+var memoryStore = {};
+var storageBroken = false;
+
+function showStorageWarning(){
+  if(storageBroken) return;
+  storageBroken = true;
+  var w = document.createElement('div');
+  w.style.cssText = 'position:sticky;top:0;z-index:60;background:#a13f2b;color:#fff;padding:8px 14px;font-size:12px;font-family:IBM Plex Sans,sans-serif;text-align:center;';
+  w.textContent = 'Įrenginio atmintis šiuo metu nepasiekiama — CRM įrašai išliks tik šios sesijos metu (dings uždarius). Bandyk perkrauti artefaktą, jei nori patikimo išsaugojimo.';
+  document.body.insertBefore(w, document.body.firstChild);
+}
+
+async function storageGet(key){
+  if(storageBroken) return memoryStore[key] || null;
+  try{ var r = await window.storage.get(key, false); return r ? JSON.parse(r.value) : null; }
+  catch(e){ return memoryStore[key] || null; }
+}
+async function storageSet(key, val){
+  if(storageBroken){ memoryStore[key] = val; return true; }
+  try{
+    var r = await window.storage.set(key, JSON.stringify(val), false);
+    if(!r) throw new Error('empty response');
+    memoryStore[key] = val;
+    return true;
+  }catch(e){
+    console.error('storage set failed, falling back to memory', e);
+    memoryStore[key] = val;
+    showStorageWarning();
+    return true;
+  }
+}
+async function storageDelete(key){
+  delete memoryStore[key];
+  if(storageBroken) return;
+  try{ await window.storage.delete(key, false); }catch(e){}
+}
+async function storageListKeys(prefix){
+  if(storageBroken){
+    return Object.keys(memoryStore).filter(function(k){ return k.indexOf(prefix)===0; });
+  }
+  try{
+    var r = await window.storage.list(prefix, false);
+    var realKeys = r ? r.keys : [];
+    var memKeys = Object.keys(memoryStore).filter(function(k){ return k.indexOf(prefix)===0; });
+    var all = realKeys.slice();
+    memKeys.forEach(function(k){ if(all.indexOf(k)===-1) all.push(k); });
+    return all;
+  }catch(e){
+    showStorageWarning();
+    return Object.keys(memoryStore).filter(function(k){ return k.indexOf(prefix)===0; });
+  }
+}
+
+/* ---------- Claude API call ---------- */
+async function callClaude(systemPrompt, userPrompt, useWebSearch){
+  var body = {
+    model: "claude-sonnet-4-6",
+    max_tokens: 1500,
+    system: systemPrompt,
+    messages: [{role:"user", content: userPrompt}]
+  };
+  if(useWebSearch){
+    body.tools = [{type:"web_search_20250305", name:"web_search"}];
+  }
+  var resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
+  if(!resp.ok){ throw new Error("API error " + resp.status); }
+  var data = await resp.json();
+  var texts = data.content.filter(function(b){return b.type==='text';}).map(function(b){return b.text;});
+  return texts.join("\n");
+}
+
+/* ---------- SEARCH BUYERS ---------- */
+var currentResults = [];
+
+async function searchBuyers(){
+  var product = el('product').value === 'custom' ? el('productCustom').value.trim() : el('product').value;
+  var country = el('country').value === 'custom' ? el('countryCustom').value.trim() : el('country').value;
+  if(!product || !country){
+    el('searchStatus').textContent = 'Įvesk produktą ir šalį.';
+    return;
+  }
+  var checkedTypes = Array.prototype.slice.call(document.querySelectorAll('.filters input:checked')).map(function(c){return c.value;});
+
+  var btn = el('searchBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Ieškoma...';
+  el('searchStatus').textContent = 'AI ieško internete realių įmonių — tai gali užtrukti 20-40 sek.';
+  el('results').innerHTML = '';
+
+  var sys = "You are a B2B lead research assistant for a wood products trader based in Lithuania who sells non-FSC/non-PEFC certified wood pellets and panels, targeting markets where buyers typically do not require chain-of-custody certification. "+
+    "Use web search to find REAL, currently operating companies that would plausibly buy the given product in the given country. "+
+    "Only include companies that fit these categories: wholesale timber traders, building materials distributors, wood pellet distributors, furniture manufacturers, wood panel/board importers. "+
+    "STRICTLY EXCLUDE: end consumers, small retail shops, unrelated businesses, companies outside the target country, and companies whose listings explicitly state they only buy FSC/PEFC certified material. "+
+    "For each company, try to find: company name, website, a plausible contact email (from their website contact/imprint page if visible in search snippets, otherwise leave blank), phone, contact person name (if findable, otherwise blank), business type (one of: wholesaler, building, pellet, furniture, importer), city, and a potential score 1-10 (based on apparent company size, whether they import, whether they have warehouses, whether they trade similar products — infer from what you find). "+
+    "Also add a short one-line note explaining the score reasoning. "+
+    "Return ONLY plain text, one company per line, fields separated by the pipe character |, in EXACTLY this order and no header row: "+
+    "company|website|email|phone|contact|type|city|score|note "+
+    "If a field is unknown, leave it empty but keep the pipe separators. Return 6 to 10 companies. Do not include any other text, explanation, or markdown before or after the list.";
+
+  var userMsg = "Product: " + product + "\nTarget country: " + country + "\nAllowed business types: " + checkedTypes.join(', ');
+
+  try{
+    var raw = await callClaude(sys, userMsg, true);
+    var lines = raw.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.indexOf('|') > -1;});
+    var results = lines.map(function(line){
+      var parts = line.split('|').map(function(p){return p.trim();});
+      return {
+        company: parts[0]||'', website: parts[1]||'', email: parts[2]||'', phone: parts[3]||'',
+        contact: parts[4]||'', type: (parts[5]||'').toLowerCase(), city: parts[6]||'',
+        score: parts[7]||'?', note: parts[8]||''
+      };
+    }).filter(function(r){ return r.company; });
+
+    currentResults = results;
+    renderResults(results, product);
+    el('searchStatus').textContent = results.length + ' rezultatai rasti. Šaltinis: AI web paieška (ne mokamos duomenų bazės — patikrink kontaktus prieš siunčiant).';
+  }catch(err){
+    el('searchStatus').textContent = 'Klaida ieškant: ' + err.message + '. Bandyk dar kartą.';
+  }
+  btn.disabled = false;
+  btn.innerHTML = 'Search Buyers';
+}
+
+function renderResults(results, product){
+  var box = el('results');
+  if(results.length===0){
+    box.innerHTML = '<div class="empty"><h3>Nieko nerasta</h3><p>Pabandyk kitą produktą ar šalį.</p></div>';
+    return;
+  }
+  box.innerHTML = results.map(function(r, i){
+    return leadCardHTML(r, i, false);
+  }).join('');
+}
+
+function typeLabel(t){
+  var m = {wholesaler:'Medienos didmenininkas', building:'Statybinių medžiagų prekybininkas', pellet:'Granulių distributorius', furniture:'Baldų gamintojas', importer:'Plokščių importuotojas'};
+  return m[t] || (t || 'Nenurodyta');
+}
+
+function leadCardHTML(r, idx, saved){
+  var id = 'lead_' + idx;
+  return '<div class="lead-card'+(saved?' saved':'')+'" id="'+id+'">'+
+    '<div class="lead-top">'+
+      '<div><div class="lead-name">'+esc(r.company)+'</div><div class="lead-type">'+esc(typeLabel(r.type))+' · '+esc(r.city||'—')+'</div></div>'+
+      '<div class="score">'+esc(r.score)+'/10</div>'+
+    '</div>'+
+    '<div class="lead-meta">'+
+      (r.website ? 'Svetainė: <a href="'+esc(r.website)+'" target="_blank" rel="noopener">'+esc(r.website)+'</a><br>' : '')+
+      (r.email ? 'El. paštas: '+esc(r.email)+'<br>' : '')+
+      (r.phone ? 'Tel.: '+esc(r.phone)+'<br>' : '')+
+      (r.contact ? 'Kontaktas: '+esc(r.contact) : '')+
+    '</div>'+
+    (r.note ? '<div class="lead-notes">'+esc(r.note)+'</div>' : '')+
+    '<div class="lead-actions">'+
+      '<button class="btn small ghost" onclick=\'toggleLetter("'+id+'")\'>Generuoti laišką</button>'+
+      (saved ? '' : '<button class="btn small amber" onclick=\'saveLead('+idx+')\'>Išsaugoti į CRM</button>')+
+    '</div>'+
+    '<div class="letter-box" id="'+id+'_letter" style="display:none;">'+
+      '<label style="display:inline;">Kalba:</label> '+
+      '<select id="'+id+'_lang"><option value="German">Vokiečių</option><option value="English">Anglų</option><option value="French">Prancūzų</option></select>'+
+      '<button class="btn small" onclick=\'generateLetter("'+id+'", '+idx+')\'>Generuoti</button>'+
+      '<textarea class="letter-out" id="'+id+'_out" placeholder="Laiškas atsiras čia..."></textarea>'+
+    '</div>'+
+  '</div>';
+}
+
+function toggleLetter(id){
+  var box = el(id+'_letter');
+  box.style.display = box.style.display==='none' ? 'block' : 'none';
+}
+
+async function generateLetter(id, idx){
+  var r = currentResults[idx] || (window._crmCache && window._crmCache[idx]);
+  var lang = el(id+'_lang').value;
+  var out = el(id+'_out');
+  out.value = 'Generuojama...';
+  var sys = "You write concise, professional B2B outreach emails for a Lithuanian wood products trading company introducing itself to a potential buyer. "+
+    "Keep it under 150 words, warm but businesslike, no over-selling, end with a clear call to action to schedule a short call. Write ONLY the email body (no subject line label, no explanation), in the requested language.";
+  var userMsg = "Recipient company: " + r.company + " (" + typeLabel(r.type) + ", " + (r.city||'') + ")\n"+
+    "Write this email in " + lang + ".\n"+
+    "Sender: a wood products trading company offering wood pellets and wood panels/boards, sourced internationally, competitive pricing, flexible order volumes.";
+  try{
+    var text = await callClaude(sys, userMsg, false);
+    out.value = text.trim();
+  }catch(err){
+    out.value = 'Klaida generuojant laišką: ' + err.message;
+  }
+}
+
+/* ---------- SAVE TO CRM ---------- */
+async function saveLead(idx){
+  var r = currentResults[idx];
+  var id = 'lead_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+  var record = {
+    id:id, company:r.company, website:r.website, email:r.email, phone:r.phone, contact:r.contact,
+    type:r.type, city:r.city, score:r.score, note:r.note, status:'New', crmNotes:'', savedAt: new Date().toISOString()
+  };
+  var ok = await storageSet('leads:'+id, record);
+  if(ok){
+    var card = document.getElementById('lead_'+idx);
+    if(card){
+      card.classList.add('saved');
+      var btn = card.querySelector('.lead-actions .btn.amber');
+      if(btn){ btn.outerHTML = '<span class="btn small" style="background:var(--good);color:#fff;">Išsaugota ✓</span>'; }
+    }
+  }else{
+    alert('Nepavyko išsaugoti. Bandyk dar kartą.');
+  }
+}
+
+/* ---------- CRM VIEW ---------- */
+async function renderCRM(){
+  el('crmStatus').textContent = 'Kraunama...';
+  var keys = await storageListKeys('leads:');
+  if(!keys.length){
+    el('crmStatus').textContent = '';
+    el('crmList').innerHTML = '<div class="empty"><h3>CRM tuščias</h3><p>Eik į „Paieška" ir išsaugok pirmus pirkėjus.</p></div>';
+    return;
+  }
+  var records = [];
+  for(var i=0;i<keys.length;i++){
+    var r = await storageGet(keys[i]);
+    if(r) records.push(r);
+  }
+  records.sort(function(a,b){ return new Date(b.savedAt) - new Date(a.savedAt); });
+  window._crmCache = records;
+  el('crmStatus').textContent = records.length + ' pirkėjai CRM sistemoje.';
+  el('crmList').innerHTML = records.map(function(r, i){
+    return crmCardHTML(r, i);
+  }).join('');
+}
+
+function crmCardHTML(r, idx){
+  var id = 'crm_' + idx;
+  return '<div class="lead-card saved" id="'+id+'">'+
+    '<div class="lead-top">'+
+      '<div><div class="lead-name">'+esc(r.company)+'</div><div class="lead-type">'+esc(typeLabel(r.type))+' · '+esc(r.city||'—')+'</div></div>'+
+      '<div class="score">'+esc(r.score)+'/10</div>'+
+    '</div>'+
+    '<div class="lead-meta">'+
+      (r.website ? 'Svetainė: <a href="'+esc(r.website)+'" target="_blank" rel="noopener">'+esc(r.website)+'</a><br>' : '')+
+      (r.email ? 'El. paštas: '+esc(r.email)+'<br>' : '')+
+      (r.phone ? 'Tel.: '+esc(r.phone)+'<br>' : '')+
+      (r.contact ? 'Kontaktas: '+esc(r.contact) : '')+
+    '</div>'+
+    '<div class="crm-row">'+
+      '<label style="margin:0;">Statusas: </label>'+
+      '<select class="crm-status-select" onchange=\'updateStatus("'+r.id+'", this.value)\'>'+
+        ['New','Contacted','Replied','Won','Lost'].map(function(s){
+          return '<option value="'+s+'"'+(r.status===s?' selected':'')+'>'+s+'</option>';
+        }).join('')+
+      '</select>'+
+    '</div>'+
+    '<textarea class="letter-out" style="min-height:60px;" placeholder="Pastabos..." onchange=\'updateNotes("'+r.id+'", this.value)\'>'+esc(r.crmNotes||'')+'</textarea>'+
+    '<div class="lead-actions">'+
+      '<button class="btn small ghost" onclick=\'toggleLetter("'+id+'")\'>Generuoti laišką</button>'+
+      '<button class="btn small danger" onclick=\'deleteLead("'+r.id+'")\'>Ištrinti</button>'+
+    '</div>'+
+    '<div class="letter-box" id="'+id+'_letter" style="display:none;">'+
+      '<label style="display:inline;">Kalba:</label> '+
+      '<select id="'+id+'_lang"><option value="German">Vokiečių</option><option value="English">Anglų</option><option value="French">Prancūzų</option></select>'+
+      '<button class="btn small" onclick=\'generateLetter("'+id+'", '+idx+')\'>Generuoti</button>'+
+      '<textarea class="letter-out" id="'+id+'_out" placeholder="Laiškas atsiras čia..."></textarea>'+
+    '</div>'+
+  '</div>';
+}
+
+async function updateStatus(id, status){
+  var r = await storageGet('leads:'+id);
+  if(r){ r.status = status; await storageSet('leads:'+id, r); }
+}
+async function updateNotes(id, notes){
+  var r = await storageGet('leads:'+id);
+  if(r){ r.crmNotes = notes; await storageSet('leads:'+id, r); }
+}
+async function deleteLead(id){
+  if(!confirm('Ištrinti šį įrašą iš CRM?')) return;
+  await storageDelete('leads:'+id);
+  renderCRM();
+}
+
+/* init */
+renderCRM();
+</script>
+</body>
+</html>
