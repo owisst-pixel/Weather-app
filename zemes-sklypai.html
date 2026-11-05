@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Žemės sklypų žemėlapis</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+:root{--bg:#f6f7f4;--card:#fff;--tx:#1d2a1f;--mut:#6b776d;--bd:#dde2da;--ac:#2f6b3a;--st:#c2410c}
+@media(prefers-color-scheme:dark){:root{--bg:#161a17;--card:#1f2521;--tx:#e8eee9;--mut:#93a095;--bd:#323b34;--ac:#6fbf7d;--st:#fb923c}}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font:14px/1.4 system-ui,sans-serif;background:var(--bg);color:var(--tx);display:flex;flex-direction:column}
+header{padding:8px 12px;border-bottom:1px solid var(--bd);display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--card)}
+header h1{font-size:16px;margin:0 8px 0 0}
+main{flex:1;display:flex;min-height:0}
+#side{width:380px;display:flex;flex-direction:column;border-right:1px solid var(--bd);background:var(--card);min-height:0}
+#map{flex:1}
+.f{padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;border-bottom:1px solid var(--bd)}
+input,select,button{font:inherit;padding:5px 7px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)}
+button{cursor:pointer;background:var(--ac);color:#fff;border-color:var(--ac)}button.s{background:var(--bg);color:var(--tx);border-color:var(--bd)}
+#list{overflow:auto;flex:1}
+.it{padding:9px 12px;border-bottom:1px solid var(--bd);cursor:pointer}.it:hover{background:var(--bg)}
+.row{display:flex;justify-content:space-between;gap:8px}.mut{color:var(--mut);font-size:12px}
+.tag{font-size:11px;padding:1px 6px;border-radius:9px;color:#fff;background:var(--ac)}.tag.st{background:var(--st)}
+.sc{font-weight:700}
+#det{position:absolute;right:10px;top:10px;width:330px;max-height:calc(100% - 20px);overflow:auto;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;z-index:1000;display:none;box-shadow:0 4px 18px #0003}
+#det table{width:100%;border-collapse:collapse}#det td{padding:3px 0;border-bottom:1px solid var(--bd);vertical-align:top}#det td:first-child{color:var(--mut);width:46%}
+.bar{height:6px;border-radius:3px;background:var(--bd);overflow:hidden;margin:4px 0 8px}.bar i{display:block;height:100%;background:var(--ac)}
+#mapw{position:relative;flex:1;display:flex}
+@media(max-width:760px){main{flex-direction:column-reverse}#side{width:100%;height:42%}#det{width:auto;left:10px}}
+a{color:var(--ac)}
+</style>
+</head>
+<body>
+<header>
+ <h1>🌲 Žemės sklypai</h1>
+ <button class="s" onclick="document.getElementById('file').click()">Importuoti CSV/JSON</button>
+ <button class="s" onclick="exp()">Eksportuoti</button>
+ <button class="s" id="addb" onclick="addMode()">+ Pridėti sklypą žemėlapyje</button>
+ <button class="s" onclick="addWms()">+ WMS sluoksnis</button>
+ <button class="s" onclick="toggleSrc()">Šaltiniai</button>
+ <input type="file" id="file" accept=".csv,.json" hidden>
+ <span class="mut" id="cnt"></span>
+</header>
+<main>
+ <div id="side">
+  <div class="f">
+   <input id="q" placeholder="Paieška (savivaldybė, kad. nr.)" style="grid-column:1/3">
+   <select id="ft"><option value="">Visi savininkai</option><option value="private">Privatūs</option><option value="state">Valstybinė žemė</option></select>
+   <select id="fp"><option value="">Visos paskirtys</option></select>
+   <input id="pmax" type="number" placeholder="Maks. kaina €">
+   <input id="amin" type="number" placeholder="Min. plotas a">
+   <input id="smin" type="number" placeholder="Min. balas (0-100)">
+   <select id="so"><option value="score">Rūšiuoti: balas</option><option value="price">Kaina ↑</option><option value="ppa">€/aras ↑</option><option value="area">Plotas ↓</option></select>
+  </div>
+  <div id="list"></div>
+ </div>
+ <div id="mapw"><div id="map"></div><div id="det"></div></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const KEY='zemes_sklypai_v1';
+const PURP={gyv:'Gyvenamoji',zu:'Žemės ūkio',miskas:'Miškų ūkio',kom:'Komercinė/pramoninė',rek:'Rekreacinė',kita:'Kita'};
+// DEMO duomenys – pakeiskite savais arba importuokite tikrus
+const DEMO=[
+{id:'D1',title:'Sklypas individualiems namams, Pavilnys',type:'private',purpose:'gyv',area:12,price:48000,lat:54.7405,lng:25.3320,muni:'Vilniaus m.',cad:'DEMO',el:1,water:1,gas:0,sewer:1,road:'asfaltas',dist:6,seller:'Privatus',date:'2026-10-20',notes:'Detalusis planas patvirtintas'},
+{id:'D2',title:'Sodybos vieta prie ežero',type:'private',purpose:'rek',area:35,price:29000,lat:55.0720,lng:25.0800,muni:'Molėtų r.',cad:'DEMO',el:1,water:0,gas:0,sewer:0,road:'žvyras',dist:55,seller:'Privatus',date:'2026-09-30',notes:'Vandens apsaugos juosta 25 m'},
+{id:'D3',title:'Žemės ūkio paskirties žemė',type:'private',purpose:'zu',area:1800,price:162000,lat:55.3300,lng:24.0600,muni:'Kėdainių r.',cad:'DEMO',el:0,water:0,gas:0,sewer:0,road:'žvyras',dist:15,seller:'Ūkininkas',date:'2026-10-02',notes:'Našumo balas 52'},
+{id:'D4',title:'Valstybinė žemė – aukcionas, Klaipėda',type:'state',purpose:'kom',area:80,price:96000,lat:55.6900,lng:21.1700,muni:'Klaipėdos m.',cad:'DEMO',el:1,water:1,gas:1,sewer:1,road:'asfaltas',dist:3,seller:'Nacionalinė žemės tarnyba',date:'2026-10-25',auction:'2026-11-28',notes:'Pradinė kaina, nuomos/pirkimo aukcionas'},
+{id:'D5',title:'Valstybinė žemė – miško sklypas',type:'state',purpose:'miskas',area:2500,price:78000,lat:54.0800,lng:24.0500,muni:'Druskininkų sav.',cad:'DEMO',el:0,water:0,gas:0,sewer:0,road:'žvyras',dist:12,seller:'Valstybės turto fondas',date:'2026-10-10',auction:'2026-12-05',notes:'Mišrus miškas, brandus medynas'},
+{id:'D6',title:'Sklypas Palangos pakraštyje',type:'private',purpose:'gyv',area:10,price:72000,lat:55.9300,lng:21.0900,muni:'Palangos m.',cad:'DEMO',el:1,water:1,gas:0,sewer:1,road:'asfaltas',dist:2,seller:'Agentūra',date:'2026-10-28',notes:'800 m iki jūros'},
+{id:'D7',title:'Valstybinė žemė – pramonės sklypas Šiauliuose',type:'state',purpose:'kom',area:150,price:60000,lat:55.9100,lng:23.2900,muni:'Šiaulių m.',cad:'DEMO',el:1,water:1,gas:1,sewer:1,road:'asfaltas',dist:4,seller:'Šiaulių m. savivaldybė',date:'2026-09-15',auction:'2026-11-20',notes:'Laisvoji ekonominė zona greta'},
+{id:'D8',title:'Sklypas Trakų apylinkėse',type:'private',purpose:'gyv',area:20,price:55000,lat:54.6400,lng:24.9000,muni:'Trakų r.',cad:'DEMO',el:1,water:0,gas:0,sewer:0,road:'žvyras',dist:28,seller:'Privatus',date:'2026-10-18',notes:'Šalia miško'},
+{id:'D9',title:'Ūkio paskirties žemė Panevėžio r.',type:'private',purpose:'zu',area:3200,price:240000,lat:55.7000,lng:24.4500,muni:'Panevėžio r.',cad:'DEMO',el:0,water:0,gas:0,sewer:0,road:'asfaltas',dist:9,seller:'Privatus',date:'2026-08-30',notes:'Našumo balas 58, drenuota'},
+{id:'D10',title:'Valstybinė žemė – gyvenamoji, Kaunas',type:'state',purpose:'gyv',area:9,price:31000,lat:54.9100,lng:23.8800,muni:'Kauno m.',cad:'DEMO',el:1,water:1,gas:1,sewer:1,road:'asfaltas',dist:5,seller:'Nacionalinė žemės tarnyba',date:'2026-10-22',auction:'2026-11-18',notes:'Pirkimas aukcione'}
+];
+let data=JSON.parse(localStorage.getItem(KEY)||'null')||DEMO;
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const eur=n=>new Intl.NumberFormat('lt-LT',{maximumFractionDigits:0}).format(n)+' €';
+// Naudingumo balas 0-100
+function score(p){
+ const ppa=p.price/Math.max(p.area,.01);
+ const base={gyv:1500,kom:700,rek:900,zu:120,miskas:300,kita:500}[p.purpose]||500;
+ let s=0;
+ s+=Math.max(0,Math.min(30,30*(1.6-ppa/base)/1.2)); // kaina vs. tipinė paskirties
+ s+=(p.el?7:0)+(p.water?7:0)+(p.gas?4:0)+(p.sewer?7:0); // komunikacijos (25)
+ s+={asfaltas:20,žvyras:11,'nėra':0}[p.road]??8; // privažiavimas (20)
+ s+=Math.max(0,25*(1-(p.dist||0)/60)); // atstumas iki miesto (25)
+ return Math.round(Math.max(0,Math.min(100,s)));
+}
+const col=s=>s>=70?'#16a34a':s>=45?'#ca8a04':'#dc2626';
+const map=L.map('map').setView([55.17,23.9],7);
+const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'© Esri'});
+const lc=L.control.layers({'Žemėlapis':osm,'Palydovas':sat},{}).addTo(map);
+let layer=L.layerGroup().addTo(map),markers={},adding=false;
+function filtered(){
+ const q=$('q').value.toLowerCase(),t=$('ft').value,pu=$('fp').value,pm=+$('pmax').value,am=+$('amin').value,sm=+$('smin').value;
+ let r=data.filter(p=>(!t||p.type===t)&&(!pu||p.purpose===pu)&&(!pm||p.price<=pm)&&(!am||p.area>=am)&&p.score>=sm&&(!q||(p.title+p.muni+p.cad).toLowerCase().includes(q)));
+ const so=$('so').value;
+ r.sort((a,b)=>so==='price'?a.price-b.price:so==='ppa'?a.price/a.area-b.price/b.area:so==='area'?b.area-a.area:b.score-a.score);
+ return r;
+}
+function render(){
+ data.forEach(p=>p.score=score(p));
+ const r=filtered();layer.clearLayers();markers={};
+ $('list').innerHTML=r.map(p=>`<div class="it" onclick="sel('${esc(p.id)}')"><div class="row"><b>${esc(p.title)}</b><span class="sc" style="color:${col(p.score)}">${p.score}</span></div>
+ <div class="row"><span class="mut">${esc(p.muni)} · ${p.area} a</span><b>${eur(p.price)}</b></div>
+ <div class="mut"><span class="tag ${p.type==='state'?'st':''}">${p.type==='state'?'Valstybinė':'Privati'}</span> ${esc(PURP[p.purpose]||p.purpose)} · ${eur(p.price/p.area)}/a</div></div>`).join('')||'<div class="it mut">Nieko nerasta</div>';
+ r.forEach(p=>{
+  const m=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',iconSize:[34,34],iconAnchor:[17,17],
+   html:`<div style="width:34px;height:34px;border-radius:50%;background:${col(p.score)};border:3px solid ${p.type==='state'?'#c2410c':'#fff'};color:#fff;font:700 12px system-ui;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 5px #0006">${p.score}</div>`})}).addTo(layer);
+  m.on('click',()=>sel(p.id,true));markers[p.id]=m;
+ });
+ $('cnt').textContent=r.length+' / '+data.length+' sklypų';
+}
+function sel(id,fromMap){
+ const p=data.find(x=>x.id===id);if(!p)return;
+ if(!fromMap)map.setView([p.lat,p.lng],Math.max(map.getZoom(),11));
+ const yn=v=>v?'✅ yra':'❌ nėra';
+ const parts=[['Komunikacijos',(p.el?7:0)+(p.water?7:0)+(p.gas?4:0)+(p.sewer?7:0),25],['Privažiavimas',{asfaltas:20,žvyras:11}[p.road]??0,20],['Atstumas iki miesto',Math.round(Math.max(0,25*(1-(p.dist||0)/60))),25]];
+ $('det').style.display='block';
+ $('det').innerHTML=`<div class="row"><b>${esc(p.title)}</b><button class="s" onclick="$('det').style.display='none'">✕</button></div>
+ <div style="margin:6px 0"><span class="tag ${p.type==='state'?'st':''}">${p.type==='state'?'Valstybinė žemė':'Privatus pardavimas'}</span></div>
+ <div style="font-size:22px;font-weight:700">${eur(p.price)}</div><div class="mut">${eur(p.price/p.area)} už arą</div>
+ <div style="margin:10px 0 2px">Naudingumo balas: <span class="sc" style="color:${col(p.score)}">${p.score}/100</span></div>
+ <div class="bar"><i style="width:${p.score}%;background:${col(p.score)}"></i></div>
+ ${parts.map(x=>`<div class="mut">${x[0]}: ${x[1]}/${x[2]}</div>`).join('')}
+ <table style="margin-top:10px">
+ <tr><td>Savivaldybė</td><td>${esc(p.muni)}</td></tr><tr><td>Kadastro nr.</td><td>${esc(p.cad)}</td></tr>
+ <tr><td>Plotas</td><td>${p.area} a (${(p.area/100).toFixed(2)} ha)</td></tr><tr><td>Paskirtis</td><td>${esc(PURP[p.purpose]||p.purpose)}</td></tr>
+ <tr><td>Elektra</td><td>${yn(p.el)}</td></tr><tr><td>Vanduo</td><td>${yn(p.water)}</td></tr><tr><td>Dujos</td><td>${yn(p.gas)}</td></tr><tr><td>Nuotekos</td><td>${yn(p.sewer)}</td></tr>
+ <tr><td>Kelias</td><td>${esc(p.road)}</td></tr><tr><td>Iki miesto</td><td>${p.dist} km</td></tr>
+ <tr><td>Pardavėjas</td><td>${esc(p.seller)}</td></tr><tr><td>Skelbta</td><td>${esc(p.date)}</td></tr>
+ ${p.auction?`<tr><td>Aukcionas</td><td><b>${esc(p.auction)}</b></td></tr>`:''}
+ <tr><td>Pastabos</td><td>${esc(p.notes)}</td></tr><tr><td>Koordinatės</td><td>${(+p.lat).toFixed(5)}, ${(+p.lng).toFixed(5)}</td></tr></table>
+ <p><a target="_blank" rel="noopener" href="https://www.geoportal.lt/map/#c=${p.lng},${p.lat}">Atidaryti Geoportale</a>${p.url&&/^https?:/.test(p.url)?` · <a target="_blank" rel="noopener" href="${esc(p.url)}">Skelbimas</a>`:''}</p>
+ <button class="s" onclick="del('${esc(p.id)}')">Ištrinti</button>`;
+}
+function del(id){if(confirm('Ištrinti sklypą?')){data=data.filter(x=>x.id!==id);save();$('det').style.display='none';render()}}
+function addMode(){adding=!adding;$('addb').textContent=adding?'Spustelėkite žemėlapyje…':'+ Pridėti sklypą žemėlapyje';map.getContainer().style.cursor=adding?'crosshair':''}
+map.on('click',e=>{
+ if(!adding)return;addMode();
+ const g=(l,d)=>prompt(l,d);
+ const title=g('Pavadinimas','Naujas sklypas');if(!title)return;
+ const type=g('Tipas: private / state','private')==='state'?'state':'private';
+ const area=+g('Plotas arais',10),price=+g('Kaina €',20000);
+ const pur=g('Paskirtis: gyv, zu, miskas, kom, rek, kita','gyv');
+ const muni=g('Savivaldybė','')||'',cad=g('Kadastro nr.','')||'';
+ data.push({id:'U'+Date.now(),title,type,purpose:pur,area:area||1,price:price||0,lat:e.latlng.lat,lng:e.latlng.lng,muni,cad,el:0,water:0,gas:0,sewer:0,road:'žvyras',dist:10,seller:'',date:new Date().toISOString().slice(0,10),notes:''});
+ save();render();
+});
+function addWms(){
+ const u=prompt('WMS adresas (pvz. iš geoportal.lt / NŽT):');if(!u)return;
+ const l=prompt('Sluoksnio pavadinimas (layers):');if(!l)return;
+ const w=L.tileLayer.wms(u,{layers:l,format:'image/png',transparent:true,opacity:.7}).addTo(map);
+ lc.addOverlay(w,'WMS: '+l);
+}
+function toggleSrc(){
+ $('det').style.display='block';
+ $('det').innerHTML=`<div class="row"><b>Oficialūs šaltiniai</b><button class="s" onclick="$('det').style.display='none'">✕</button></div>
+ <p class="mut">Programa rodo ${data[0]&&data[0].cad==='DEMO'?'<b>DEMO duomenis</b>':'jūsų duomenis'}. Tikrus skelbimus importuokite CSV/JSON.</p>
+ <ul><li><a target="_blank" href="https://www.geoportal.lt">Geoportal.lt</a> – kadastro, sklypų ribos, WMS</li>
+ <li><a target="_blank" href="https://www.nzt.lt">Nacionalinė žemės tarnyba</a> – valstybinės žemės aukcionai</li>
+ <li><a target="_blank" href="https://www.registrucentras.lt">Registrų centras</a> – nekilnojamojo turto registras</li>
+ <li><a target="_blank" href="https://www.aruodas.lt">Aruodas</a>, <a target="_blank" href="https://www.skelbiu.lt">Skelbiu</a> – privatūs skelbimai</li></ul>
+ <p class="mut"><b>CSV stulpeliai:</b> title,type,purpose,area,price,lat,lng,muni,cad,el,water,gas,sewer,road,dist,seller,date,auction,notes,url<br>type: private/state · purpose: gyv, zu, miskas, kom, rek, kita · el/water/gas/sewer: 1/0 · road: asfaltas/žvyras/nėra · area: arais.</p>`;
+}
+function parseCSV(t){
+ const rows=[];let r=[],c='',q=false;
+ for(let i=0;i<t.length;i++){const ch=t[i];
+  if(q){if(ch==='"'){if(t[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}
+  else if(ch==='"')q=true;else if(ch===','||ch===';'){r.push(c);c=''}
+  else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&t[i+1]==='\n')i++;r.push(c);c='';if(r.some(x=>x))rows.push(r);r=[]}else c+=ch}
+ if(c||r.length){r.push(c);rows.push(r)}
+ const h=rows.shift().map(x=>x.trim());
+ return rows.map(v=>Object.fromEntries(h.map((k,i)=>[k,v[i]])));
+}
+$('file').onchange=async e=>{
+ const f=e.target.files[0];if(!f)return;const t=await f.text();
+ try{
+  const raw=f.name.endsWith('.json')?JSON.parse(t):parseCSV(t);
+  const imp=raw.map((o,i)=>({id:'I'+Date.now()+'_'+i,title:o.title||'Sklypas',type:o.type==='state'?'state':'private',purpose:o.purpose||'kita',area:+o.area||1,price:+o.price||0,lat:+o.lat,lng:+o.lng,muni:o.muni||'',cad:o.cad||'',el:+o.el?1:0,water:+o.water?1:0,gas:+o.gas?1:0,sewer:+o.sewer?1:0,road:o.road||'žvyras',dist:+o.dist||0,seller:o.seller||'',date:o.date||'',auction:o.auction||'',notes:o.notes||'',url:o.url||''})).filter(p=>isFinite(p.lat)&&isFinite(p.lng));
+  if(!imp.length)return alert('Nerasta tinkamų eilučių (reikia lat, lng).');
+  data=data.filter(p=>p.cad!=='DEMO').concat(imp);save();render();
+  map.fitBounds(L.latLngBounds(imp.map(p=>[p.lat,p.lng])).pad(.2));
+ }catch(err){alert('Importo klaida: '+err.message)}
+ e.target.value='';
+};
+function exp(){
+ const b=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='zemes-sklypai.json';a.click();
+}
+$('fp').innerHTML+=Object.entries(PURP).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+['q','ft','fp','pmax','amin','smin','so'].forEach(id=>$(id).addEventListener('input',render));
+render();
+</script>
+</body>
+</html>
