@@ -1,838 +1,217 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="lt">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#1e3a8a">
-    <title>NATGAS Pro Tracker</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-            min-height: 100vh;
-        }
-        .app { max-width: 100%; min-height: 100vh; background: white; }
-        .header {
-            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-            color: white; padding: 20px; text-align: center;
-        }
-        .header h1 { font-size: 20px; margin-bottom: 5px; }
-        .last-update {
-            font-size: 11px; opacity: 0.9; margin-top: 5px;
-            background: rgba(255,255,255,0.2); padding: 5px 10px;
-            border-radius: 12px; display: inline-block;
-        }
-        .temp-toggle { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
-        .temp-btn {
-            padding: 8px 24px; border: 2px solid white; background: transparent;
-            color: white; border-radius: 20px; font-weight: 600; cursor: pointer;
-            transition: all 0.3s; font-size: 14px;
-        }
-        .temp-btn.active { background: white; color: #1e3a8a; }
-        .controls { padding: 15px; background: #f8f9fa; }
-        select, button {
-            width: 100%; padding: 14px; margin-bottom: 10px;
-            border: 2px solid #ddd; border-radius: 10px; font-size: 16px; background: white;
-        }
-        button { border: none; color: white; font-weight: 600; cursor: pointer; }
-        button:active { transform: scale(0.98); }
-        .btn-primary { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
-        .btn-secondary { background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); }
-        .status {
-            padding: 12px; text-align: center; font-weight: 600;
-            background: #e8f5e9; color: #2e7d32;
-        }
-        .status.loading { background: #fff3e0; color: #e65100; }
-        .content { padding: 15px; }
-        
-        /* Signal Card */
-        .signal-card {
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border-left: 5px solid #666;
-        }
-        .signal-card.bullish { border-left-color: #10b981; }
-        .signal-card.bearish { border-left-color: #ef4444; }
-        .signal-card.neutral { border-left-color: #f59e0b; }
-        
-        .signal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .signal-title { font-size: 16px; font-weight: 700; color: #1e3a8a; }
-        .signal-badge {
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        .signal-badge.bullish { background: #dcfce7; color: #166534; }
-        .signal-badge.bearish { background: #fee2e2; color: #991b1b; }
-        .signal-badge.neutral { background: #fef3c7; color: #92400e; }
-        
-        .signal-details {
-            font-size: 13px;
-            line-height: 1.6;
-            color: #666;
-            margin-top: 10px;
-        }
-        .signal-metric {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .signal-metric:last-child { border-bottom: none; }
-        .metric-label { color: #666; font-size: 13px; }
-        .metric-value { font-weight: 700; font-size: 14px; }
-        .metric-value.positive { color: #10b981; }
-        .metric-value.negative { color: #ef4444; }
-        
-        /* Comparison Card */
-        .comparison-card {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .comparison-header {
-            font-weight: 700;
-            font-size: 15px;
-            margin-bottom: 10px;
-            color: #1e3a8a;
-        }
-        .comparison-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            font-size: 13px;
-        }
-        .comparison-change {
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-        }
-        .comparison-change.up {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        .comparison-change.down {
-            background: #dcfce7;
-            color: #166534;
-        }
-        
-        /* History Table */
-        .history-card {
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .history-header {
-            font-weight: 700;
-            font-size: 15px;
-            margin-bottom: 12px;
-            color: #1e3a8a;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .clear-history {
-            font-size: 11px;
-            color: #ef4444;
-            cursor: pointer;
-            padding: 4px 8px;
-            border: 1px solid #ef4444;
-            border-radius: 6px;
-            background: white;
-        }
-        .history-table {
-            width: 100%;
-            font-size: 11px;
-            border-collapse: collapse;
-        }
-        .history-table th {
-            background: #f8f9fa;
-            padding: 8px 4px;
-            text-align: left;
-            font-weight: 700;
-            color: #666;
-            border-bottom: 2px solid #e0e0e0;
-        }
-        .history-table td {
-            padding: 8px 4px;
-            border-bottom: 1px solid #f0f0f0;
-            color: #333;
-        }
-        .history-table tr:hover {
-            background: #f8f9fa;
-        }
-        .history-table .current-row {
-            background: #e3f2fd;
-            font-weight: 700;
-        }
-        .trend-indicator {
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 700;
-        }
-        .trend-up { background: #fee2e2; color: #991b1b; }
-        .trend-down { background: #dcfce7; color: #166534; }
-        .trend-neutral { background: #f3f4f6; color: #666; }
-        
-        .market-data {
-            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-            color: white; border-radius: 12px; padding: 15px; margin-bottom: 15px;
-        }
-        .market-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
-        .market-item {
-            background: rgba(255,255,255,0.15); padding: 12px;
-            border-radius: 8px; text-align: center;
-        }
-        .market-label { font-size: 11px; opacity: 0.9; margin-bottom: 5px; }
-        .market-value { font-size: 20px; font-weight: 700; }
-        .market-date { font-size: 9px; opacity: 0.8; margin-top: 3px; }
-        
-        .forecast-card {
-            background: #f8f9fa; border-radius: 10px; padding: 12px;
-            margin-bottom: 10px; border-left: 4px solid #3b82f6;
-        }
-        .city-name { font-weight: 700; color: #1e3a8a; margin-bottom: 5px; }
-        .temp-display { font-size: 20px; font-weight: 700; color: #3b82f6; margin: 5px 0; }
-        .hdd-cdd-inline { display: flex; gap: 8px; margin-top: 8px; font-size: 12px; }
-        .hdd-inline {
-            background: #dbeafe; color: #1e40af; padding: 6px 10px;
-            border-radius: 6px; flex: 1; text-align: center; font-weight: 600;
-        }
-        .cdd-inline {
-            background: #fee2e2; color: #991b1b; padding: 6px 10px;
-            border-radius: 6px; flex: 1; text-align: center; font-weight: 600;
-        }
-        .source {
-            text-align: center; font-size: 11px; color: #666;
-            padding: 15px; border-top: 1px solid #e0e0e0; margin-top: 20px;
-        }
-        .source a { color: #3b82f6; text-decoration: none; }
-        
-        .expand-btn {
-            background: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            padding: 8px;
-            width: 100%;
-            border-radius: 6px;
-            margin-top: 10px;
-            cursor: pointer;
-            font-size: 12px;
-            color: #666;
-        }
-        .expand-btn:active {
-            background: #e0e0e0;
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Žemės sklypų žemėlapis</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+:root{--bg:#f6f7f4;--card:#fff;--tx:#1d2a1f;--mut:#6b776d;--bd:#dde2da;--ac:#2f6b3a;--st:#c2410c}
+@media(prefers-color-scheme:dark){:root{--bg:#161a17;--card:#1f2521;--tx:#e8eee9;--mut:#93a095;--bd:#323b34;--ac:#6fbf7d;--st:#fb923c}}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font:14px/1.4 system-ui,sans-serif;background:var(--bg);color:var(--tx);display:flex;flex-direction:column}
+header{padding:8px 12px;border-bottom:1px solid var(--bd);display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--card)}
+header h1{font-size:16px;margin:0 8px 0 0}
+main{flex:1;display:flex;min-height:0}
+#side{width:380px;display:flex;flex-direction:column;border-right:1px solid var(--bd);background:var(--card);min-height:0}
+#map{flex:1}
+.f{padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;border-bottom:1px solid var(--bd)}
+input,select,button{font:inherit;padding:5px 7px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)}
+button{cursor:pointer;background:var(--ac);color:#fff;border-color:var(--ac)}button.s{background:var(--bg);color:var(--tx);border-color:var(--bd)}
+#list{overflow:auto;flex:1}
+.it{padding:9px 12px;border-bottom:1px solid var(--bd);cursor:pointer}.it:hover{background:var(--bg)}
+.row{display:flex;justify-content:space-between;gap:8px}.mut{color:var(--mut);font-size:12px}
+.tag{font-size:11px;padding:1px 6px;border-radius:9px;color:#fff;background:var(--ac)}.tag.st{background:var(--st)}
+.sc{font-weight:700}
+#det{position:absolute;right:10px;top:10px;width:330px;max-height:calc(100% - 20px);overflow:auto;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;z-index:1000;display:none;box-shadow:0 4px 18px #0003}
+#det table{width:100%;border-collapse:collapse}#det td{padding:3px 0;border-bottom:1px solid var(--bd);vertical-align:top}#det td:first-child{color:var(--mut);width:46%}
+.bar{height:6px;border-radius:3px;background:var(--bd);overflow:hidden;margin:4px 0 8px}.bar i{display:block;height:100%;background:var(--ac)}
+#mapw{position:relative;flex:1;display:flex}
+@media(max-width:760px){main{flex-direction:column-reverse}#side{width:100%;height:42%}#det{width:auto;left:10px}}
+a{color:var(--ac)}
+</style>
 </head>
 <body>
-    <div class="app">
-        <div class="header">
-            <h1>🔥 NATGAS Pro Tracker</h1>
-            <p style="font-size: 12px; opacity: 0.9;">Trading Signals • HDD/CDD • Market Data</p>
-            <div class="last-update" id="lastUpdate">Last update: Never</div>
-            <div class="temp-toggle">
-                <button class="temp-btn active" id="btnF">°F</button>
-                <button class="temp-btn" id="btnC">°C</button>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <select id="city">
-                <option value="All">📍 All Cities (Compare)</option>
-                <option value="Houston">Houston, TX (Henry Hub)</option>
-                <option value="New York">New York, NY</option>
-                <option value="Chicago">Chicago, IL</option>
-                <option value="Boston">Boston, MA</option>
-                <option value="Los Angeles">Los Angeles, CA</option>
-            </select>
-            <button class="btn-primary" id="updateBtn">🔄 Update Data</button>
-        </div>
-        
-        <div id="status" class="status">Click "Update Data" to start</div>
-        
-        <div class="content">
-            <!-- Trading Signal -->
-            <div id="tradingSignal"></div>
-            
-            <!-- Comparison with Previous -->
-            <div id="comparisonCard"></div>
-            
-            <!-- History Table -->
-            <div class="history-card">
-                <div class="history-header">
-                    📜 Update History (Last 5)
-                    <button class="clear-history" onclick="clearHistory()">Clear</button>
-                </div>
-                <div id="historyTable"></div>
-            </div>
-            
-            <!-- Market Data -->
-            <div class="market-data">
-                <h3 style="margin-bottom: 10px;">📊 Market Data (Latest)</h3>
-                <div class="market-grid">
-                    <div class="market-item">
-                        <div class="market-label">Gas Storage</div>
-                        <div class="market-value" id="gasStorage">2,450</div>
-                        <div class="market-date" id="storageDate">Bcf</div>
-                    </div>
-                    <div class="market-item">
-                        <div class="market-label">Weekly Change</div>
-                        <div class="market-value" id="storageChange">-45</div>
-                        <div class="market-date">Bcf</div>
-                    </div>
-                    <div class="market-item">
-                        <div class="market-label">Active Gas Rigs</div>
-                        <div class="market-value" id="rigCount">127</div>
-                        <div class="market-date" id="rigDate">Latest</div>
-                    </div>
-                    <div class="market-item">
-                        <div class="market-label">Total HDD (10d)</div>
-                        <div class="market-value" id="totalHDD">---</div>
-                        <div class="market-date">All Cities</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Forecasts -->
-            <div id="forecastContent">
-                <div style="text-align: center; padding: 40px 20px; color: #999;">
-                    Select a city and click "Update Data"
-                </div>
-            </div>
-        </div>
-        
-        <div class="source">
-            <strong>Live Data Sources:</strong><br>
-            Weather: <a href="https://open-meteo.com">Open-Meteo API</a><br>
-            Storage: <a href="https://www.eia.gov/naturalgas/weekly/">EIA Weekly (Updated Thu 10:30 ET)</a><br>
-            Rigs: <a href="https://rigcount.bakerhughes.com">Baker Hughes (Updated Fri)</a>
-        </div>
-    </div>
-
-    <script>
-        let tempUnit = 'F';
-        let currentData = null;
-        let historyData = [];
-        const MAX_HISTORY = 5;
-        
-        const cities = {
-            "Houston": [29.7604, -95.3698],
-            "New York": [40.7128, -74.0060],
-            "Chicago": [41.8781, -87.6298],
-            "Boston": [42.3601, -71.0589],
-            "Los Angeles": [34.0522, -118.2437]
-        };
-        
-        const weatherCodes = {
-            0: "Clear", 1: "Clear", 2: "Partly Cloudy", 3: "Cloudy",
-            61: "Rain", 63: "Rain", 65: "Heavy Rain",
-            71: "Snow", 73: "Snow", 75: "Heavy Snow",
-            95: "Thunderstorm"
-        };
-        
-        // Load history from localStorage
-        function loadHistory() {
-            const saved = localStorage.getItem('natgas_history');
-            if (saved) {
-                try {
-                    historyData = JSON.parse(saved);
-                } catch (e) {
-                    historyData = [];
-                }
-            }
-            displayHistory();
-        }
-        
-        function saveHistory(totals, signal) {
-            const entry = {
-                timestamp: new Date().toISOString(),
-                date: new Date().toLocaleString(),
-                totalHDD: totals.totalHDD,
-                totalCDD: totals.totalCDD,
-                avgTemp: totals.avgTemp,
-                signal: signal,
-                cityName: document.getElementById('city').value
-            };
-            
-            historyData.unshift(entry); // Add to beginning
-            if (historyData.length > MAX_HISTORY) {
-                historyData = historyData.slice(0, MAX_HISTORY);
-            }
-            
-            localStorage.setItem('natgas_history', JSON.stringify(historyData));
-            displayHistory();
-        }
-        
-        function displayHistory() {
-            const container = document.getElementById('historyTable');
-            
-            if (historyData.length === 0) {
-                container.innerHTML = `
-                    <p style="text-align: center; color: #999; padding: 20px; font-size: 12px;">
-                        No history yet. Update data to start tracking.
-                    </p>
-                `;
-                return;
-            }
-            
-            let html = `
-                <table class="history-table">
-                    <thead>
-                        <tr>
-                            <th>Date/Time</th>
-                            <th>HDD</th>
-                            <th>CDD</th>
-                            <th>Trend</th>
-                            <th>Signal</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
-            historyData.forEach((entry, index) => {
-                const isFirst = index === 0;
-                const prevEntry = index < historyData.length - 1 ? historyData[index + 1] : null;
-                
-                let hddTrend = '';
-                let cddTrend = '';
-                
-                if (prevEntry) {
-                    const hddDiff = entry.totalHDD - prevEntry.totalHDD;
-                    const cddDiff = entry.totalCDD - prevEntry.totalCDD;
-                    
-                    if (Math.abs(hddDiff) > 10) {
-                        hddTrend = hddDiff > 0 ? '↑' : '↓';
-                    } else {
-                        hddTrend = '→';
-                    }
-                    
-                    if (Math.abs(cddDiff) > 10) {
-                        cddTrend = cddDiff > 0 ? '↑' : '↓';
-                    } else {
-                        cddTrend = '→';
-                    }
-                }
-                
-                const dateShort = new Date(entry.timestamp).toLocaleString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                
-                const signalClass = entry.signal.toLowerCase();
-                const signalBadge = entry.signal === 'bullish' ? '📈' : 
-                                   entry.signal === 'bearish' ? '📉' : '➡️';
-                
-                html += `
-                    <tr class="${isFirst ? 'current-row' : ''}">
-                        <td style="font-weight: ${isFirst ? '700' : '400'};">
-                            ${dateShort}${isFirst ? ' 🔵' : ''}
-                        </td>
-                        <td>
-                            ${entry.totalHDD.toFixed(0)}
-                            ${hddTrend ? `<span style="color: ${hddTrend === '↑' ? '#ef4444' : hddTrend === '↓' ? '#10b981' : '#666'}; margin-left: 2px;">${hddTrend}</span>` : ''}
-                        </td>
-                        <td>
-                            ${entry.totalCDD.toFixed(0)}
-                            ${cddTrend ? `<span style="color: ${cddTrend === '↑' ? '#ef4444' : cddTrend === '↓' ? '#10b981' : '#666'}; margin-left: 2px;">${cddTrend}</span>` : ''}
-                        </td>
-                        <td>
-                            ${prevEntry ? 
-                                `<span class="trend-indicator ${
-                                    Math.abs(entry.totalHDD - prevEntry.totalHDD) > 50 ? 'trend-up' :
-                                    Math.abs(entry.totalHDD - prevEntry.totalHDD) < 20 ? 'trend-neutral' : 'trend-down'
-                                }">
-                                    ${((entry.totalHDD - prevEntry.totalHDD) / prevEntry.totalHDD * 100).toFixed(1)}%
-                                </span>`
-                                : '-'
-                            }
-                        </td>
-                        <td>${signalBadge}</td>
-                    </tr>
-                `;
-            });
-            
-            html += `
-                    </tbody>
-                </table>
-            `;
-            
-            container.innerHTML = html;
-        }
-        
-        function clearHistory() {
-            if (confirm('Clear all history data?')) {
-                historyData = [];
-                localStorage.removeItem('natgas_history');
-                displayHistory();
-            }
-        }
-        
-        // Temperature buttons
-        document.getElementById('btnF').addEventListener('click', function() {
-            tempUnit = 'F';
-            document.getElementById('btnF').classList.add('active');
-            document.getElementById('btnC').classList.remove('active');
-            if (currentData) displayData(currentData);
-        });
-        
-        document.getElementById('btnC').addEventListener('click', function() {
-            tempUnit = 'C';
-            document.getElementById('btnC').classList.add('active');
-            document.getElementById('btnF').classList.remove('active');
-            if (currentData) displayData(currentData);
-        });
-        
-        // Update button
-        document.getElementById('updateBtn').addEventListener('click', fetchData);
-        
-        function toFahrenheit(c) { return (c * 9/5) + 32; }
-        function toCelsius(f) { return (f - 32) * 5/9; }
-        function convertTemp(temp) { return tempUnit === 'C' ? toCelsius(temp) : temp; }
-        function calculateHDD(avgF) { return Math.max(0, 65 - avgF); }
-        function calculateCDD(avgF) { return Math.max(0, avgF - 65); }
-        
-        function calculateTotals(data) {
-            let totalHDD = 0, totalCDD = 0, avgTemp = 0, count = 0;
-            
-            for (const [cityName, daily] of Object.entries(data)) {
-                for (let i = 0; i < 10; i++) {
-                    const avg = (daily.temperature_2m_min[i] + daily.temperature_2m_max[i]) / 2;
-                    totalHDD += calculateHDD(avg);
-                    totalCDD += calculateCDD(avg);
-                    avgTemp += avg;
-                    count++;
-                }
-            }
-            
-            return {
-                totalHDD,
-                totalCDD,
-                avgTemp: avgTemp / count
-            };
-        }
-        
-        function determineTradingSignal(totals, previousEntry) {
-            let signal = 'neutral';
-            let strength = 0;
-            let reasons = [];
-            
-            const { totalHDD, totalCDD } = totals;
-            
-            if (totalHDD > 400) {
-                strength += 2;
-                reasons.push(`Strong heating demand (${totalHDD.toFixed(0)} HDD)`);
-            } else if (totalHDD > 250) {
-                strength += 1;
-                reasons.push(`Moderate heating demand (${totalHDD.toFixed(0)} HDD)`);
-            }
-            
-            if (totalCDD > 200) {
-                strength += 2;
-                reasons.push(`Strong cooling demand (${totalCDD.toFixed(0)} CDD)`);
-            } else if (totalCDD > 100) {
-                strength += 1;
-                reasons.push(`Moderate cooling demand (${totalCDD.toFixed(0)} CDD)`);
-            }
-            
-            if (previousEntry) {
-                const hddChange = totalHDD - previousEntry.totalHDD;
-                const cddChange = totalCDD - previousEntry.totalCDD;
-                
-                if (Math.abs(hddChange) > 50) {
-                    if (hddChange > 0) {
-                        strength += 1;
-                        reasons.push(`HDD increased by ${hddChange.toFixed(0)} (colder forecast)`);
-                    } else {
-                        strength -= 1;
-                        reasons.push(`HDD decreased by ${Math.abs(hddChange).toFixed(0)} (warmer forecast)`);
-                    }
-                }
-                
-                if (Math.abs(cddChange) > 30) {
-                    if (cddChange > 0) {
-                        strength += 1;
-                        reasons.push(`CDD increased by ${cddChange.toFixed(0)} (hotter forecast)`);
-                    } else {
-                        strength -= 1;
-                        reasons.push(`CDD decreased by ${Math.abs(cddChange).toFixed(0)} (cooler forecast)`);
-                    }
-                }
-            }
-            
-            if (totalHDD < 100 && totalCDD < 50) {
-                strength -= 2;
-                reasons.push('Mild weather - low heating and cooling demand');
-            }
-            
-            if (strength >= 2) {
-                signal = 'bullish';
-            } else if (strength <= -2) {
-                signal = 'bearish';
-            } else {
-                signal = 'neutral';
-            }
-            
-            return {
-                signal,
-                strength,
-                reasons,
-                totals
-            };
-        }
-        
-        function displayTradingSignal(analysis) {
-            const { signal, strength, reasons, totals } = analysis;
-            
-            const signalEmoji = {
-                'bullish': '📈',
-                'bearish': '📉',
-                'neutral': '➡️'
-            };
-            
-            const signalText = {
-                'bullish': 'BULLISH',
-                'bearish': 'BEARISH',
-                'neutral': 'NEUTRAL'
-            };
-            
-            const html = `
-                <div class="signal-card ${signal}">
-                    <div class="signal-header">
-                        <div class="signal-title">${signalEmoji[signal]} Trading Signal</div>
-                        <div class="signal-badge ${signal}">${signalText[signal]}</div>
-                    </div>
-                    <div class="signal-details">
-                        <strong>Analysis:</strong><br>
-                        ${reasons.map(r => `• ${r}`).join('<br>')}
-                    </div>
-                    <div style="margin-top: 10px;">
-                        <div class="signal-metric">
-                            <span class="metric-label">Total HDD (10 days)</span>
-                            <span class="metric-value">${totals.totalHDD.toFixed(0)}</span>
-                        </div>
-                        <div class="signal-metric">
-                            <span class="metric-label">Total CDD (10 days)</span>
-                            <span class="metric-value">${totals.totalCDD.toFixed(0)}</span>
-                        </div>
-                        <div class="signal-metric">
-                            <span class="metric-label">Signal Strength</span>
-                            <span class="metric-value ${strength > 0 ? 'positive' : strength < 0 ? 'negative' : ''}">${strength > 0 ? '+' : ''}${strength}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('tradingSignal').innerHTML = html;
-        }
-        
-        function displayComparison(current, previous) {
-            if (!previous) {
-                document.getElementById('comparisonCard').innerHTML = `
-                    <div class="comparison-card">
-                        <div class="comparison-header">📊 Comparison with Previous</div>
-                        <p style="text-align: center; color: #999; padding: 20px; font-size: 12px;">
-                            No previous data. Update again later to see changes.
-                        </p>
-                    </div>
-                `;
-                return;
-            }
-            
-            const hddChange = current.totalHDD - previous.totalHDD;
-            const cddChange = current.totalCDD - previous.totalCDD;
-            const tempChange = current.avgTemp - previous.avgTemp;
-            
-            const timeDiff = new Date() - new Date(previous.timestamp);
-            const hoursDiff = Math.floor(timeDiff / (1000 * 60 * 60));
-            
-            const html = `
-                <div class="comparison-card">
-                    <div class="comparison-header">📊 Change from Previous Update</div>
-                    <p style="font-size: 11px; color: #666; margin-bottom: 10px;">
-                        Previous: ${new Date(previous.timestamp).toLocaleString()} 
-                        (${hoursDiff < 24 ? hoursDiff + 'h ago' : Math.floor(hoursDiff/24) + 'd ago'})
-                    </p>
-                    <div class="comparison-row">
-                        <span>HDD Forecast</span>
-                        <span class="comparison-change ${hddChange > 0 ? 'up' : 'down'}">
-                            ${hddChange > 0 ? '↑' : '↓'} ${Math.abs(hddChange).toFixed(0)} 
-                            (${((hddChange / previous.totalHDD) * 100).toFixed(1)}%)
-                        </span>
-                    </div>
-                    <div class="comparison-row">
-                        <span>CDD Forecast</span>
-                        <span class="comparison-change ${cddChange > 0 ? 'up' : 'down'}">
-                            ${cddChange > 0 ? '↑' : '↓'} ${Math.abs(cddChange).toFixed(0)}
-                            (${previous.totalCDD > 0 ? ((cddChange / previous.totalCDD) * 100).toFixed(1) : 'N/A'}%)
-                        </span>
-                    </div>
-                    <div class="comparison-row">
-                        <span>Avg Temperature</span>
-                        <span class="comparison-change ${tempChange > 0 ? 'up' : 'down'}">
-                            ${tempChange > 0 ? '↑' : '↓'} ${Math.abs(tempChange).toFixed(1)}°F
-                        </span>
-                    </div>
-                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0; font-size: 12px; color: #666;">
-                        <strong>Impact:</strong> ${Math.abs(hddChange) > 50 ? '⚠️ Significant forecast change!' : 
-                                                    '➡️ Normal forecast variation'}
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('comparisonCard').innerHTML = html;
-        }
-        
-        async function fetchData() {
-            const cityName = document.getElementById('city').value;
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = '⏳ Fetching weather data...';
-            statusEl.className = 'status loading';
-            
-            try {
-                let newData;
-                if (cityName === 'All') {
-                    newData = {};
-                    for (const [name, coords] of Object.entries(cities)) {
-                        newData[name] = await fetchCityData(coords);
-                    }
-                } else {
-                    newData = {[cityName]: await fetchCityData(cities[cityName])};
-                }
-                
-                const totals = calculateTotals(newData);
-                const previousEntry = historyData.length > 0 ? historyData[0] : null;
-                const analysis = determineTradingSignal(totals, previousEntry);
-                
-                displayTradingSignal(analysis);
-                displayComparison(totals, previousEntry);
-                
-                saveHistory(totals, analysis.signal);
-                
-                currentData = newData;
-                displayData(newData);
-                
-                const now = new Date();
-                document.getElementById('lastUpdate').textContent = 
-                    `Last update: ${now.toLocaleString()}`;
-                
-                document.getElementById('totalHDD').textContent = totals.totalHDD.toFixed(0);
-                
-                statusEl.textContent = '✅ Data updated successfully';
-                statusEl.className = 'status';
-            } catch (error) {
-                statusEl.textContent = '❌ Error: ' + error.message;
-                statusEl.className = 'status loading';
-                console.error('Fetch error:', error);
-            }
-        }
-        
-        async function fetchCityData(coords) {
-            const [lat, lon] = coords;
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=America/New_York&forecast_days=10&temperature_unit=fahrenheit`;
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('API request failed');
-            const data = await response.json();
-            return data.daily;
-        }
-        
-        function displayData(allData) {
-            const cityName = document.getElementById('city').value;
-            
-            if (cityName === 'All') {
-                displayAllCities(allData);
-            } else {
-                displaySingleCity(Object.keys(allData)[0], Object.values(allData)[0]);
-            }
-        }
-        
-        function displayAllCities(allData) {
-            let html = '';
-            
-            for (const [cityName, daily] of Object.entries(allData)) {
-                const minF = daily.temperature_2m_min[0];
-                const maxF = daily.temperature_2m_max[0];
-                
-                let cityHDD = 0, cityCDD = 0;
-                for (let i = 0; i < 10; i++) {
-                    const avg = (daily.temperature_2m_min[i] + daily.temperature_2m_max[i]) / 2;
-                    cityHDD += calculateHDD(avg);
-                    cityCDD += calculateCDD(avg);
-                }
-                
-                const minDisplay = convertTemp(minF);
-                const maxDisplay = convertTemp(maxF);
-                
-                html += `
-                    <div class="forecast-card">
-                        <div class="city-name">${cityName}</div>
-                        <div class="temp-display">${minDisplay.toFixed(1)}° - ${maxDisplay.toFixed(1)}°${tempUnit}</div>
-                        <div style="font-size: 12px; color: #666; margin-top: 3px;">
-                            ${weatherCodes[daily.weathercode[0]] || 'Unknown'}
-                        </div>
-                        <div class="hdd-cdd-inline">
-                            <div class="hdd-inline">❄️ HDD: ${cityHDD.toFixed(0)}</div>
-                            <div class="cdd-inline">🔥 CDD: ${cityCDD.toFixed(0)}</div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            document.getElementById('forecastContent').innerHTML = html;
-        }
-        
-        function displaySingleCity(cityName, daily) {
-            let html = '';
-            
-            for (let i = 0; i < 10; i++) {
-                const minF = daily.temperature_2m_min[i];
-                const maxF = daily.temperature_2m_max[i];
-                const avgF = (minF + maxF) / 2;
-                
-                const hdd = calculateHDD(avgF);
-                const cdd = calculateCDD(avgF);
-                
-                const minDisplay = convertTemp(minF);
-                const maxDisplay = convertTemp(maxF);
-                
-                html += `
-                    <div class="forecast-card">
-                        <div class="city-name">📅 ${daily.time[i]}</div>
-                        <div class="temp-display">${minDisplay.toFixed(1)}° - ${maxDisplay.toFixed(1)}°${tempUnit}</div>
-                        <div style="font-size: 12px; color: #666;">${weatherCodes[daily.weathercode[i]] || 'Unknown'}</div>
-                        <div class="hdd-cdd-inline">
-                            <div class="hdd-inline">❄️ ${hdd.toFixed(1)}</div>
-                            <div class="cdd-inline">🔥 ${cdd.toFixed(1)}</div>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            document.getElementById('forecastContent').innerHTML = html;
-        }
-        
-        // Load history on startup
-        loadHistory();
-        
-        console.log('NATGAS Pro Tracker with History loaded');
-    </script>
+<header>
+ <h1>🌲 Žemės sklypai</h1>
+ <button class="s" onclick="document.getElementById('file').click()">Importuoti CSV/JSON</button>
+ <button class="s" onclick="exp()">Eksportuoti</button>
+ <button class="s" id="addb" onclick="addMode()">+ Pridėti sklypą žemėlapyje</button>
+ <button class="s" onclick="addWms()">+ WMS sluoksnis</button>
+ <button class="s" onclick="toggleSrc()">Šaltiniai</button>
+ <input type="file" id="file" accept=".csv,.json" hidden>
+ <span class="mut" id="cnt"></span>
+</header>
+<main>
+ <div id="side">
+  <div class="f">
+   <input id="q" placeholder="Paieška (savivaldybė, kad. nr.)" style="grid-column:1/3">
+   <select id="ft"><option value="">Visi savininkai</option><option value="private">Privatūs</option><option value="state">Valstybinė žemė</option></select>
+   <select id="fp"><option value="">Visos paskirtys</option></select>
+   <input id="pmax" type="number" placeholder="Maks. kaina €">
+   <input id="amin" type="number" placeholder="Min. plotas a">
+   <input id="smin" type="number" placeholder="Min. balas (0-100)">
+   <select id="so"><option value="score">Rūšiuoti: balas</option><option value="price">Kaina ↑</option><option value="ppa">€/aras ↑</option><option value="area">Plotas ↓</option></select>
+  </div>
+  <div id="list"></div>
+ </div>
+ <div id="mapw"><div id="map"></div><div id="det"></div></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const KEY='zemes_sklypai_v1';
+const PURP={gyv:'Gyvenamoji',zu:'Žemės ūkio',miskas:'Miškų ūkio',kom:'Komercinė/pramoninė',rek:'Rekreacinė',kita:'Kita'};
+// DEMO duomenys – pakeiskite savais arba importuokite tikrus
+const DEMO=[
+{id:'D1',title:'Sklypas individualiems namams, Pavilnys',type:'private',purpose:'gyv',area:12,price:48000,lat:54.7405,lng:25.3320,muni:'Vilniaus m.',cad:'DEMO',el:1,water:1,gas:0,sewer:1,road:'asfaltas',dist:6,seller:'Privatus',date:'2026-10-20',notes:'Detalusis planas patvirtintas'},
+{id:'D2',title:'Sodybos vieta prie ežero',type:'private',purpose:'rek',area:35,price:29000,lat:55.0720,lng:25.0800,muni:'Molėtų r.',cad:'DEMO',el:1,water:0,gas:0,sewer:0,road:'žvyras',dist:55,seller:'Privatus',date:'2026-09-30',notes:'Vandens apsaugos juosta 25 m'},
+{id:'D3',title:'Žemės ūkio paskirties žemė',type:'private',purpose:'zu',area:1800,price:162000,lat:55.3300,lng:24.0600,muni:'Kėdainių r.',cad:'DEMO',el:0,water:0,gas:0,sewer:0,road:'žvyras',dist:15,seller:'Ūkininkas',date:'2026-10-02',notes:'Našumo balas 52'},
+{id:'D4',title:'Valstybinė žemė – aukcionas, Klaipėda',type:'state',purpose:'kom',area:80,price:96000,lat:55.6900,lng:21.1700,muni:'Klaipėdos m.',cad:'DEMO',el:1,water:1,gas:1,sewer:1,road:'asfaltas',dist:3,seller:'Nacionalinė žemės tarnyba',date:'2026-10-25',auction:'2026-11-28',notes:'Pradinė kaina, nuomos/pirkimo aukcionas'},
+{id:'D5',title:'Valstybinė žemė – miško sklypas',type:'state',purpose:'miskas',area:2500,price:78000,lat:54.0800,lng:24.0500,muni:'Druskininkų sav.',cad:'DEMO',el:0,water:0,gas:0,sewer:0,road:'žvyras',dist:12,seller:'Valstybės turto fondas',date:'2026-10-10',auction:'2026-12-05',notes:'Mišrus miškas, brandus medynas'},
+{id:'D6',title:'Sklypas Palangos pakraštyje',type:'private',purpose:'gyv',area:10,price:72000,lat:55.9300,lng:21.0900,muni:'Palangos m.',cad:'DEMO',el:1,water:1,gas:0,sewer:1,road:'asfaltas',dist:2,seller:'Agentūra',date:'2026-10-28',notes:'800 m iki jūros'},
+{id:'D7',title:'Valstybinė žemė – pramonės sklypas Šiauliuose',type:'state',purpose:'kom',area:150,price:60000,lat:55.9100,lng:23.2900,muni:'Šiaulių m.',cad:'DEMO',el:1,water:1,gas:1,sewer:1,road:'asfaltas',dist:4,seller:'Šiaulių m. savivaldybė',date:'2026-09-15',auction:'2026-11-20',notes:'Laisvoji ekonominė zona greta'},
+{id:'D8',title:'Sklypas Trakų apylinkėse',type:'private',purpose:'gyv',area:20,price:55000,lat:54.6400,lng:24.9000,muni:'Trakų r.',cad:'DEMO',el:1,water:0,gas:0,sewer:0,road:'žvyras',dist:28,seller:'Privatus',date:'2026-10-18',notes:'Šalia miško'},
+{id:'D9',title:'Ūkio paskirties žemė Panevėžio r.',type:'private',purpose:'zu',area:3200,price:240000,lat:55.7000,lng:24.4500,muni:'Panevėžio r.',cad:'DEMO',el:0,water:0,gas:0,sewer:0,road:'asfaltas',dist:9,seller:'Privatus',date:'2026-08-30',notes:'Našumo balas 58, drenuota'},
+{id:'D10',title:'Valstybinė žemė – gyvenamoji, Kaunas',type:'state',purpose:'gyv',area:9,price:31000,lat:54.9100,lng:23.8800,muni:'Kauno m.',cad:'DEMO',el:1,water:1,gas:1,sewer:1,road:'asfaltas',dist:5,seller:'Nacionalinė žemės tarnyba',date:'2026-10-22',auction:'2026-11-18',notes:'Pirkimas aukcione'}
+];
+let data=JSON.parse(localStorage.getItem(KEY)||'null')||DEMO;
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const eur=n=>new Intl.NumberFormat('lt-LT',{maximumFractionDigits:0}).format(n)+' €';
+// Naudingumo balas 0-100
+function score(p){
+ const ppa=p.price/Math.max(p.area,.01);
+ const base={gyv:1500,kom:700,rek:900,zu:120,miskas:300,kita:500}[p.purpose]||500;
+ let s=0;
+ s+=Math.max(0,Math.min(30,30*(1.6-ppa/base)/1.2)); // kaina vs. tipinė paskirties
+ s+=(p.el?7:0)+(p.water?7:0)+(p.gas?4:0)+(p.sewer?7:0); // komunikacijos (25)
+ s+={asfaltas:20,žvyras:11,'nėra':0}[p.road]??8; // privažiavimas (20)
+ s+=Math.max(0,25*(1-(p.dist||0)/60)); // atstumas iki miesto (25)
+ return Math.round(Math.max(0,Math.min(100,s)));
+}
+const col=s=>s>=70?'#16a34a':s>=45?'#ca8a04':'#dc2626';
+const map=L.map('map').setView([55.17,23.9],7);
+const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'© Esri'});
+const lc=L.control.layers({'Žemėlapis':osm,'Palydovas':sat},{}).addTo(map);
+let layer=L.layerGroup().addTo(map),markers={},adding=false;
+function filtered(){
+ const q=$('q').value.toLowerCase(),t=$('ft').value,pu=$('fp').value,pm=+$('pmax').value,am=+$('amin').value,sm=+$('smin').value;
+ let r=data.filter(p=>(!t||p.type===t)&&(!pu||p.purpose===pu)&&(!pm||p.price<=pm)&&(!am||p.area>=am)&&p.score>=sm&&(!q||(p.title+p.muni+p.cad).toLowerCase().includes(q)));
+ const so=$('so').value;
+ r.sort((a,b)=>so==='price'?a.price-b.price:so==='ppa'?a.price/a.area-b.price/b.area:so==='area'?b.area-a.area:b.score-a.score);
+ return r;
+}
+function render(){
+ data.forEach(p=>p.score=score(p));
+ const r=filtered();layer.clearLayers();markers={};
+ $('list').innerHTML=r.map(p=>`<div class="it" onclick="sel('${esc(p.id)}')"><div class="row"><b>${esc(p.title)}</b><span class="sc" style="color:${col(p.score)}">${p.score}</span></div>
+ <div class="row"><span class="mut">${esc(p.muni)} · ${p.area} a</span><b>${eur(p.price)}</b></div>
+ <div class="mut"><span class="tag ${p.type==='state'?'st':''}">${p.type==='state'?'Valstybinė':'Privati'}</span> ${esc(PURP[p.purpose]||p.purpose)} · ${eur(p.price/p.area)}/a</div></div>`).join('')||'<div class="it mut">Nieko nerasta</div>';
+ r.forEach(p=>{
+  const m=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'',iconSize:[34,34],iconAnchor:[17,17],
+   html:`<div style="width:34px;height:34px;border-radius:50%;background:${col(p.score)};border:3px solid ${p.type==='state'?'#c2410c':'#fff'};color:#fff;font:700 12px system-ui;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 5px #0006">${p.score}</div>`})}).addTo(layer);
+  m.on('click',()=>sel(p.id,true));markers[p.id]=m;
+ });
+ $('cnt').textContent=r.length+' / '+data.length+' sklypų';
+}
+function sel(id,fromMap){
+ const p=data.find(x=>x.id===id);if(!p)return;
+ if(!fromMap)map.setView([p.lat,p.lng],Math.max(map.getZoom(),11));
+ const yn=v=>v?'✅ yra':'❌ nėra';
+ const parts=[['Komunikacijos',(p.el?7:0)+(p.water?7:0)+(p.gas?4:0)+(p.sewer?7:0),25],['Privažiavimas',{asfaltas:20,žvyras:11}[p.road]??0,20],['Atstumas iki miesto',Math.round(Math.max(0,25*(1-(p.dist||0)/60))),25]];
+ $('det').style.display='block';
+ $('det').innerHTML=`<div class="row"><b>${esc(p.title)}</b><button class="s" onclick="$('det').style.display='none'">✕</button></div>
+ <div style="margin:6px 0"><span class="tag ${p.type==='state'?'st':''}">${p.type==='state'?'Valstybinė žemė':'Privatus pardavimas'}</span></div>
+ <div style="font-size:22px;font-weight:700">${eur(p.price)}</div><div class="mut">${eur(p.price/p.area)} už arą</div>
+ <div style="margin:10px 0 2px">Naudingumo balas: <span class="sc" style="color:${col(p.score)}">${p.score}/100</span></div>
+ <div class="bar"><i style="width:${p.score}%;background:${col(p.score)}"></i></div>
+ ${parts.map(x=>`<div class="mut">${x[0]}: ${x[1]}/${x[2]}</div>`).join('')}
+ <table style="margin-top:10px">
+ <tr><td>Savivaldybė</td><td>${esc(p.muni)}</td></tr><tr><td>Kadastro nr.</td><td>${esc(p.cad)}</td></tr>
+ <tr><td>Plotas</td><td>${p.area} a (${(p.area/100).toFixed(2)} ha)</td></tr><tr><td>Paskirtis</td><td>${esc(PURP[p.purpose]||p.purpose)}</td></tr>
+ <tr><td>Elektra</td><td>${yn(p.el)}</td></tr><tr><td>Vanduo</td><td>${yn(p.water)}</td></tr><tr><td>Dujos</td><td>${yn(p.gas)}</td></tr><tr><td>Nuotekos</td><td>${yn(p.sewer)}</td></tr>
+ <tr><td>Kelias</td><td>${esc(p.road)}</td></tr><tr><td>Iki miesto</td><td>${p.dist} km</td></tr>
+ <tr><td>Pardavėjas</td><td>${esc(p.seller)}</td></tr><tr><td>Skelbta</td><td>${esc(p.date)}</td></tr>
+ ${p.auction?`<tr><td>Aukcionas</td><td><b>${esc(p.auction)}</b></td></tr>`:''}
+ <tr><td>Pastabos</td><td>${esc(p.notes)}</td></tr><tr><td>Koordinatės</td><td>${(+p.lat).toFixed(5)}, ${(+p.lng).toFixed(5)}</td></tr></table>
+ <p><a target="_blank" rel="noopener" href="https://www.geoportal.lt/map/#c=${p.lng},${p.lat}">Atidaryti Geoportale</a>${p.url&&/^https?:/.test(p.url)?` · <a target="_blank" rel="noopener" href="${esc(p.url)}">Skelbimas</a>`:''}</p>
+ <button class="s" onclick="del('${esc(p.id)}')">Ištrinti</button>`;
+}
+function del(id){if(confirm('Ištrinti sklypą?')){data=data.filter(x=>x.id!==id);save();$('det').style.display='none';render()}}
+function addMode(){adding=!adding;$('addb').textContent=adding?'Spustelėkite žemėlapyje…':'+ Pridėti sklypą žemėlapyje';map.getContainer().style.cursor=adding?'crosshair':''}
+map.on('click',e=>{
+ if(!adding)return;addMode();
+ const g=(l,d)=>prompt(l,d);
+ const title=g('Pavadinimas','Naujas sklypas');if(!title)return;
+ const type=g('Tipas: private / state','private')==='state'?'state':'private';
+ const area=+g('Plotas arais',10),price=+g('Kaina €',20000);
+ const pur=g('Paskirtis: gyv, zu, miskas, kom, rek, kita','gyv');
+ const muni=g('Savivaldybė','')||'',cad=g('Kadastro nr.','')||'';
+ data.push({id:'U'+Date.now(),title,type,purpose:pur,area:area||1,price:price||0,lat:e.latlng.lat,lng:e.latlng.lng,muni,cad,el:0,water:0,gas:0,sewer:0,road:'žvyras',dist:10,seller:'',date:new Date().toISOString().slice(0,10),notes:''});
+ save();render();
+});
+function addWms(){
+ const u=prompt('WMS adresas (pvz. iš geoportal.lt / NŽT):');if(!u)return;
+ const l=prompt('Sluoksnio pavadinimas (layers):');if(!l)return;
+ const w=L.tileLayer.wms(u,{layers:l,format:'image/png',transparent:true,opacity:.7}).addTo(map);
+ lc.addOverlay(w,'WMS: '+l);
+}
+function toggleSrc(){
+ $('det').style.display='block';
+ $('det').innerHTML=`<div class="row"><b>Oficialūs šaltiniai</b><button class="s" onclick="$('det').style.display='none'">✕</button></div>
+ <p class="mut">Programa rodo ${data[0]&&data[0].cad==='DEMO'?'<b>DEMO duomenis</b>':'jūsų duomenis'}. Tikrus skelbimus importuokite CSV/JSON.</p>
+ <ul><li><a target="_blank" href="https://www.geoportal.lt">Geoportal.lt</a> – kadastro, sklypų ribos, WMS</li>
+ <li><a target="_blank" href="https://www.nzt.lt">Nacionalinė žemės tarnyba</a> – valstybinės žemės aukcionai</li>
+ <li><a target="_blank" href="https://www.registrucentras.lt">Registrų centras</a> – nekilnojamojo turto registras</li>
+ <li><a target="_blank" href="https://www.aruodas.lt">Aruodas</a>, <a target="_blank" href="https://www.skelbiu.lt">Skelbiu</a> – privatūs skelbimai</li></ul>
+ <p class="mut"><b>CSV stulpeliai:</b> title,type,purpose,area,price,lat,lng,muni,cad,el,water,gas,sewer,road,dist,seller,date,auction,notes,url<br>type: private/state · purpose: gyv, zu, miskas, kom, rek, kita · el/water/gas/sewer: 1/0 · road: asfaltas/žvyras/nėra · area: arais.</p>`;
+}
+function parseCSV(t){
+ const rows=[];let r=[],c='',q=false;
+ for(let i=0;i<t.length;i++){const ch=t[i];
+  if(q){if(ch==='"'){if(t[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}
+  else if(ch==='"')q=true;else if(ch===','||ch===';'){r.push(c);c=''}
+  else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&t[i+1]==='\n')i++;r.push(c);c='';if(r.some(x=>x))rows.push(r);r=[]}else c+=ch}
+ if(c||r.length){r.push(c);rows.push(r)}
+ const h=rows.shift().map(x=>x.trim());
+ return rows.map(v=>Object.fromEntries(h.map((k,i)=>[k,v[i]])));
+}
+$('file').onchange=async e=>{
+ const f=e.target.files[0];if(!f)return;const t=await f.text();
+ try{
+  const raw=f.name.endsWith('.json')?JSON.parse(t):parseCSV(t);
+  const imp=raw.map((o,i)=>({id:'I'+Date.now()+'_'+i,title:o.title||'Sklypas',type:o.type==='state'?'state':'private',purpose:o.purpose||'kita',area:+o.area||1,price:+o.price||0,lat:+o.lat,lng:+o.lng,muni:o.muni||'',cad:o.cad||'',el:+o.el?1:0,water:+o.water?1:0,gas:+o.gas?1:0,sewer:+o.sewer?1:0,road:o.road||'žvyras',dist:+o.dist||0,seller:o.seller||'',date:o.date||'',auction:o.auction||'',notes:o.notes||'',url:o.url||''})).filter(p=>isFinite(p.lat)&&isFinite(p.lng));
+  if(!imp.length)return alert('Nerasta tinkamų eilučių (reikia lat, lng).');
+  data=data.filter(p=>p.cad!=='DEMO').concat(imp);save();render();
+  map.fitBounds(L.latLngBounds(imp.map(p=>[p.lat,p.lng])).pad(.2));
+ }catch(err){alert('Importo klaida: '+err.message)}
+ e.target.value='';
+};
+function exp(){
+ const b=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='zemes-sklypai.json';a.click();
+}
+$('fp').innerHTML+=Object.entries(PURP).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+['q','ft','fp','pmax','amin','smin','so'].forEach(id=>$(id).addEventListener('input',render));
+let updated='';
+async function loadRemote(){
+ try{
+  const r=await fetch('data/listings.json?'+Date.now(),{cache:'no-store'});
+  if(!r.ok)return;
+  const j=await r.json();
+  const rem=(Array.isArray(j)?j:j.items||[]).filter(p=>isFinite(+p.lat)&&isFinite(+p.lng));
+  if(!rem.length)return;
+  updated=j.updated||'';
+  const mine=data.filter(p=>/^(U|I)/.test(p.id)); // jūsų rankiniai/importuoti
+  data=mine.concat(rem.map(p=>({el:0,water:0,gas:0,sewer:0,road:'žvyras',dist:15,...p,lat:+p.lat,lng:+p.lng})));
+  save();render();
+  if(updated)$('cnt').textContent+=' · atnaujinta '+updated.slice(0,16).replace('T',' ');
+  map.fitBounds(L.latLngBounds(data.map(p=>[p.lat,p.lng])).pad(.1));
+ }catch(e){}
+}
+render();loadRemote();
+</script>
 </body>
 </html>
