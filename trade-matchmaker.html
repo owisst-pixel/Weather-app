@@ -115,12 +115,32 @@ JSON schema:
 {"product":str,"market_note":str,"pairs":[{"seller":{"name":str,"country":str,"city":str|null,"website":str|null,"offer":{"qty":str|null,"price":str|null,"incoterm":str|null,"lead_time":str|null,"confidence":"patvirtinta"|"įvertinta","note":str|null}},"buyer":{"name":str,"country":str,"city":str|null,"website":str|null,"demand":{"qty":str|null,"price":str|null,"incoterm":str|null,"payment":str|null,"confidence":"patvirtinta"|"įvertinta","note":str|null}},"realism":int,"realism_reason":str,"margin_pct":number|null,"margin_eur_per_unit":str|null,"margin_note":str,"risks":[str],"seller_contact":{"who":str,"name":str|null,"email":str|null,"phone":str|null,"link":str|null},"buyer_contact":{"who":str,"name":str|null,"email":str|null,"phone":str|null,"link":str|null},"sources":[str]}]}`;
 
 const SYSTEM_PUB=SYSTEM.replace("Naudodamas web_search įrankį, suraskite","Interneto paieškos NETURI. Remdamasis tik savo žiniomis, nurodyk").replace("\n- Atsakymas:","\n- Be paieškos: naudok tik tikras, tau gerai žinomas įmones; kainas ir kiekius pateik kaip \"įvertinta\" su rinkos lygio paaiškinimu; el. paštus ir telefonus rašyk null; vietoj jų nurodyk pareigybę ir oficialų tinklalapį; sources palik tuščią masyvą.\n- Atsakymas:");
-async function callApi(messages,endpoint,key){
-  const r=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-    body:JSON.stringify({model:MODEL,max_tokens:16000,system:SYSTEM,messages,tools:[{type:"web_search_20250305",name:"web_search",max_uses:14}]})});
-  const t=await r.text();let j;try{j=JSON.parse(t)}catch(e){throw new Error("Netikėtas atsakymas: "+t.slice(0,200))}
-  if(!r.ok)throw new Error((j.error&&j.error.message)||("HTTP "+r.status));
-  return j;
+async function callApi(messages,endpoint,key,tries){
+  tries=tries||0;
+  let r;
+  try{
+    r=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:MODEL,max_tokens:16000,stream:true,system:SYSTEM,messages,tools:[{type:"web_search_20250305",name:"web_search",max_uses:14}]})});
+  }catch(e){
+    if(tries<1){await new Promise(x=>setTimeout(x,2500));return callApi(messages,endpoint,key,tries+1)}
+    throw e;
+  }
+  if(!r.ok){const t=await r.text();let m;try{m=JSON.parse(t).error.message}catch(e){m=t.slice(0,200)}throw new Error(m||("HTTP "+r.status))}
+  const rd=r.body.getReader(),dec=new TextDecoder();let buf="",content=[],stop=null;
+  const handle=ev=>{
+    if(ev.type==="content_block_start"){const c=JSON.parse(JSON.stringify(ev.content_block));if(c.type==="text")c.text=c.text||"";if(c.type==="server_tool_use"||c.type==="tool_use")c._json="";content[ev.index]=c}
+    else if(ev.type==="content_block_delta"){const c=content[ev.index],d=ev.delta;if(!c)return;if(d.type==="text_delta")c.text+=d.text;else if(d.type==="input_json_delta")c._json+=d.partial_json}
+    else if(ev.type==="content_block_stop"){const c=content[ev.index];if(c&&c._json!==undefined){try{c.input=c._json?JSON.parse(c._json):{}}catch(e){c.input={}}delete c._json}}
+    else if(ev.type==="message_delta"){stop=ev.delta&&ev.delta.stop_reason}
+    else if(ev.type==="error"){throw new Error((ev.error&&ev.error.message)||"Srauto klaida")}
+  };
+  for(;;){
+    const {done,value}=await rd.read();if(done)break;
+    buf+=dec.decode(value,{stream:true});let i;
+    while((i=buf.indexOf("\n"))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+1);
+      if(line.startsWith("data:")){const d=line.slice(5).trim();if(d&&d!=="[DONE]")handle(JSON.parse(d))}}
+  }
+  return {stop_reason:stop,content:content.filter(Boolean)};
 }
 function extractJson(content){
   const txt=content.filter(b=>b.type==="text").map(b=>b.text).join("\n").replace(/```json|```/g,"");
@@ -137,6 +157,7 @@ async function run(){
   if(!PUB&&!key){st.textContent="Įveskite API raktą.";st.className="err";return}
   if(!PUB){store("tm_key",key);store("tm_proxy",$("proxy").value.trim())}
   $("go").disabled=true;$("results").hidden=true;
+  let wl=null;try{if(navigator.wakeLock)wl=await navigator.wakeLock.request("screen")}catch(e){}
   const t0=Date.now();
   const tick=setInterval(()=>{st.textContent=(PUB?"Claude sudaro poras… ":"Agentas ieško šaltinių ir sudaro poras… ")+Math.round((Date.now()-t0)/1000)+" s (paprastai "+(PUB?"0,5–2":"1–3")+" min.)"},1000);
   const q=`Prekė X: ${prod}\nMin. kiekis: ${$("qty").value.trim()||"nenurodyta"}\nŠalys: ${$("geo").value.trim()||"visa Europa"}\nData: ${new Date().toISOString().slice(0,10)}\nSudaryk 10 pardavėjų–pirkėjų porų.`;
@@ -156,8 +177,8 @@ async function run(){
     DATA=extractJson(j.content);}
     if(!Array.isArray(DATA.pairs)||!DATA.pairs.length)throw new Error("Porų nerasta. Pabandykite kitą prekės apibūdinimą.");
     render();st.textContent="";
-  }catch(e){st.textContent="Klaida: "+e.message+(/Failed to fetch/i.test(e.message)?" (patikrinkite tinklą arba proxy URL)":"");st.className="err"}
-  finally{clearInterval(tick);$("go").disabled=false}
+  }catch(e){st.textContent="Klaida: "+e.message+(/Failed to fetch|NetworkError|Load failed/i.test(e.message)?". Ryšys su API nutrūko. Patikrinkite, ar nenaudojate reklamų blokatoriaus, VPN ar Private DNS (jie gali blokuoti api.anthropic.com), nelaikykite ekrano užgesusio paieškos metu ir pabandykite dar kartą. Jei naudojate proxy URL, patikrinkite jį arba palikite tuščią.":"");st.className="err"}
+  finally{clearInterval(tick);try{if(wl)wl.release()}catch(e){}$("go").disabled=false}
 }
 
 const score=p=>(p.realism||0)*Math.max(p.margin_pct||0,0);
