@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Darbo skelbimų žemėlapis</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css">
+<style>
+*{box-sizing:border-box}html,body{height:100%;margin:0;font:14px system-ui,sans-serif;color:#222}
+#app{display:flex;flex-direction:column;height:100%}
+header{display:flex;flex-wrap:wrap;gap:8px;padding:8px 10px;background:#0b3d5c;color:#fff;align-items:center}
+header b{font-size:16px;margin-right:6px}
+select,input,button{font:inherit;padding:6px 8px;border-radius:6px;border:1px solid #ccd}
+button{background:#e8590c;color:#fff;border:0;cursor:pointer;font-weight:600}button:disabled{opacity:.5}
+#main{flex:1;display:flex;min-height:0}
+#side{width:340px;overflow:auto;border-right:1px solid #ddd;background:#fafafa}
+#map{flex:1}
+#st{padding:8px 10px;font-size:12px;color:#555;position:sticky;top:0;background:#fff;border-bottom:1px solid #eee}
+.it{padding:9px 10px;border-bottom:1px solid #eee;cursor:pointer}.it:hover{background:#eef6ff}
+.it b{display:block}.it small{color:#666;display:block}.it .s{color:#c2410c;font-weight:600}
+.pin{background:#e8590c;color:#fff;font:600 11px system-ui;padding:2px 7px;border-radius:10px;border:2px solid #fff;box-shadow:0 1px 4px #0006;white-space:nowrap;transform:translate(-50%,-50%);display:inline-block}
+@media(max-width:700px){#main{flex-direction:column-reverse}#side{width:100%;height:38%;border:0}}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <b>🗺️ Darbo žemėlapis</b>
+  <select id="city">
+    <option value="">Visa Lietuva</option><option value="vilniuje">Vilnius</option><option value="kaune">Kaunas</option>
+    <option value="klaipedoje">Klaipėda</option><option value="siauliuose">Šiauliai</option><option value="panevezyje">Panevėžys</option>
+    <option value="alytuje">Alytus</option><option value="marijampoleje">Marijampolė</option>
+  </select>
+  <select id="pages"><option value="1">1 psl.</option><option value="3" selected>3 psl.</option><option value="5">5 psl.</option><option value="10">10 psl.</option></select>
+  <button id="go">Įkelti skelbimus</button>
+  <input id="q" placeholder="Filtras: pareigos, įmonė, gatvė…" style="flex:1;min-width:150px">
+</header>
+<div id="main">
+  <div id="side"><div id="st">Spauskite „Įkelti skelbimus“. Rodomi tik skelbimai su konkrečiu darbo vietos adresu.</div><div id="list"></div></div>
+  <div id="map"></div>
+</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script>
+const $=s=>document.querySelector(s), sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const map=L.map('map').setView([55.103279,23.9691627],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+const cluster=L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:45});map.addLayer(cluster);
+const ads=new Map();
+let cache={};try{cache=JSON.parse(localStorage.getItem('cvbmap1')||'{}')}catch(e){}
+const save=()=>{try{localStorage.setItem('cvbmap1',JSON.stringify(cache))}catch(e){}};
+
+/* ---- CORS proxy (cvbankas nesiunčia CORS antraščių) ---- */
+const P=[u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
+         u=>'https://corsproxy.io/?url='+encodeURIComponent(u),
+         u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u)];
+let pi=0;
+async function get(url){
+  for(let k=0;k<P.length;k++){const i=(pi+k)%P.length;
+    try{const r=await fetch(P[i](url));if(!r.ok)continue;const t=await r.text();
+      if(t.length>2000&&/cvbankas/i.test(t)){pi=i;return t}}catch(e){}}
+  throw new Error('Nepavyko pasiekti cvbankas.lt per tarpinį serverį');
+}
+const dom=h=>new DOMParser().parseFromString(h,'text/html');
+
+function parseList(html){
+  const out=new Map();
+  dom(html).querySelectorAll('a[href]').forEach(a=>{
+    const m=(a.getAttribute('href')||'').match(/^(?:https?:\/\/www\.cvbankas\.lt)?\/([^\/?#]+)\/1-(\d+)/);
+    if(!m||/-uzsienyje$|darbas-namuose$/.test(m[1]))return;
+    out.set(m[2],'https://www.cvbankas.lt/'+m[1]+'/1-'+m[2]);
+  });
+  return out;
+}
+const STREET=/(\bg\.|gatvė|\bpr\.|prospektas|\bal\.|aklg\.|\bpl\.|plentas|\bskg\.|\bkel\.|\btak\.|\bskers|aikštė|\bkrant|\bvl\.)/i;
+const okAddr=a=>a&&a.length<160&&/\d/.test(a)&&STREET.test(a);
+function parseAd(html){
+  const d=dom(html);
+  const tx=(d.body.textContent||'').replace(/[\u200b-\u200d\u2060\ufeff]/g,'');
+  let addr='';
+  d.querySelectorAll('h2,h3').forEach(h=>{
+    if(!addr&&/^\s*Darbo vieta\s*$/i.test(h.textContent)){const n=h.nextElementSibling;addr=n?n.textContent:''}});
+  if(!addr){const m=tx.match(/Darbo vieta:\s*(.{5,160}?)\s*(?:Automobiliu|Apskaičiuokite|ĮVESKITE|\n|$)/);addr=m?m[1]:''}
+  addr=addr.replace(/Apskaičiuokite.*$/is,'').replace(/\s+/g,' ').trim();
+  const h1=d.querySelector('h1'), co=[...d.querySelectorAll('a[href*="siulo-darba"]')].map(a=>a.textContent.trim()).filter(Boolean).pop();
+  const sm=tx.match(/\d[\d\s,.]*(?:\s*[-–]\s*\d[\d\s,.]*)?\s*€\s*\/\s*(?:mėn|val)\.?(?:\s*(?:neatskaičius mokesčių|į rankas))?/i);
+  return {addr,t:h1?h1.textContent.trim():'Skelbimas',c:co||'',s:sm?sm[0].replace(/\s+/g,' ').trim():''};
+}
+
+/* ---- Geokodavimas (Nominatim, ≤1 užklausa/s) ---- */
+let gq=Promise.resolve();
+const AREA=['city','town','village','suburb','municipality','county','state','administrative','hamlet','neighbourhood','quarter','city_district','district','region','country'];
+async function nom(q){
+  const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=0&countrycodes=lt&q='+encodeURIComponent(q));
+  const j=await r.json();if(!j[0]||AREA.includes(j[0].addresstype))return null;
+  return {lat:+j[0].lat,lon:+j[0].lon,approx:j[0].addresstype==='road'};
+}
+function geo(addr){
+  return gq=gq.then(async()=>{
+    const q2=addr.replace(/,?\s*[^,]*(?:sav\.|savivaldybė)[^,]*/gi,'').trim();
+    for(const q of [...new Set([q2,addr])]){
+      await sleep(1100);
+      try{const g=await nom(q+', Lietuva');if(g)return g}catch(e){}
+    }
+    return null;
+  });
+}
+
+/* ---- UI ---- */
+function addAd(id,a){
+  if(ads.has(id))return;
+  const num=(a.s.match(/\d+(?:,\d+)?/)||[''])[0], lab=num?num+(/val/i.test(a.s)?' €/val':' €'):'•';
+  const m=L.marker([a.lat,a.lon],{icon:L.divIcon({className:'',html:'<span class="pin">'+esc(lab)+'</span>',iconSize:[0,0]})});
+  m.bindPopup('<b>'+esc(a.t)+'</b><br>'+esc(a.c)+'<br><span style="color:#c2410c">'+esc(a.s)+'</span><br>📍 '+esc(a.addr)+
+    (a.approx?'<br><i>(vieta tiksli iki gatvės)</i>':'')+'<br><a href="'+esc(a.url)+'" target="_blank" rel="noopener">Atidaryti skelbimą »</a>');
+  const li=document.createElement('div');li.className='it';
+  li.innerHTML='<b>'+esc(a.t)+'</b><small>'+esc(a.c)+'</small><span class="s">'+esc(a.s)+'</span><small>📍 '+esc(a.addr)+'</small>';
+  li.onclick=()=>{cluster.zoomToShowLayer(m,()=>m.openPopup())};
+  $('#list').appendChild(li);
+  ads.set(id,{m,li,hay:(a.t+' '+a.c+' '+a.addr).toLowerCase()});
+  apply();
+}
+function apply(){
+  const q=$('#q').value.toLowerCase().trim();cluster.clearLayers();const ms=[];
+  ads.forEach(o=>{const ok=!q||o.hay.includes(q);o.li.style.display=ok?'':'none';if(ok)ms.push(o.m)});
+  cluster.addLayers(ms);return ms.length;
+}
+$('#q').oninput=apply;
+
+async function run(){
+  const btn=$('#go'),st=$('#st');btn.disabled=true;
+  try{
+    const city=$('#city').value,pages=+$('#pages').value;
+    const base='https://www.cvbankas.lt/'+(city?'darbas-'+city:'');
+    const queue=new Map();
+    for(let p=1;p<=pages;p++){
+      st.textContent='Skaitomas sąrašas '+p+'/'+pages+'…';
+      parseList(await get(p>1?base+'?page='+p:base)).forEach((u,id)=>queue.set(id,u));
+    }
+    const ids=[...queue.keys()];let done=0;
+    const tick=()=>{st.textContent='Apdorota '+done+'/'+ids.length+' · žemėlapyje: '+ads.size+' (tik su konkrečiu adresu)'};
+    const worker=async()=>{
+      while(ids.length){
+        const id=ids.shift(),url=queue.get(id);
+        try{
+          let c=cache[id];
+          if(!c){
+            const a=parseAd(await get(url));
+            if(!okAddr(a.addr))c={n:1};
+            else{const g=await geo(a.addr);c=g?{...a,...g,url}:{n:1}}
+            cache[id]=c;save();
+          }
+          if(!c.n)addAd(id,c);
+        }catch(e){}
+        done++;tick();
+      }
+    };
+    queue.size||(st.textContent='Skelbimų nerasta.');
+    const total=queue.size;ids.length=0;ids.push(...queue.keys());
+    await Promise.all([worker(),worker(),worker(),worker()]);
+    st.textContent='Baigta: '+ads.size+' skelbimai su adresu iš '+total+' peržiūrėtų.';
+    if(ads.size){const b=L.featureGroup([...ads.values()].map(o=>o.m)).getBounds();map.fitBounds(b.pad(.1),{maxZoom:13})}
+  }catch(e){st.textContent='Klaida: '+e.message}
+  btn.disabled=false;
+}
+$('#go').onclick=run;
+</script>
+</body>
+</html>
