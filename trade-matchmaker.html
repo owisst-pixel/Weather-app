@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pirkėjų ir pardavėjų porų agentas</title>
+<style>
+:root{--bg:#ECEEE9;--surf:#F7F8F5;--ink:#18262B;--mute:#5E6B6E;--line:#CFD5D0;--buy:#274C9E;--sell:#A8650F;--ok:#1E7A4F;--mid:#B58A12;--bad:#B23A32}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12191C;--surf:#1A2428;--ink:#E4EAE8;--mute:#93A0A2;--line:#2B383C;--buy:#7FA3F2;--sell:#E0A04E;--ok:#5CC596;--mid:#D8B23E;--bad:#E27B73}}
+:root[data-theme="dark"]{--bg:#12191C;--surf:#1A2428;--ink:#E4EAE8;--mute:#93A0A2;--line:#2B383C;--buy:#7FA3F2;--sell:#E0A04E;--ok:#5CC596;--mid:#D8B23E;--bad:#E27B73}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+h1{font:600 26px/1.2 "IBM Plex Serif",Georgia,serif;margin:6px 0 4px}
+.sub{color:var(--mute);margin:0 0 18px}
+.panel{background:var(--surf);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:13px;color:var(--mute);margin-bottom:3px}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);font:inherit}
+input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:2px solid var(--buy);outline-offset:1px}
+button{font:inherit;cursor:pointer;border-radius:4px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);padding:9px 16px;font-weight:600}
+button.ghost{background:transparent;color:var(--ink);border-color:var(--line);font-weight:500;padding:6px 10px;font-size:13px}
+button:disabled{opacity:.5;cursor:wait}
+.row2{display:flex;gap:10px;align-items:end;margin-top:10px;flex-wrap:wrap}
+.row2>div{flex:1;min-width:200px}
+#status{color:var(--mute);margin:10px 2px;min-height:22px}
+#status.err{color:var(--bad)}
+.bar{display:flex;justify-content:space-between;align-items:center;margin:16px 2px 8px;gap:8px;flex-wrap:wrap}
+.pair{background:var(--surf);border:1px solid var(--line);border-radius:6px;margin-bottom:8px;overflow:hidden}
+.pair>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:28px 1fr 96px 80px;gap:12px;align-items:center;padding:12px 14px}
+.pair>summary::-webkit-details-marker{display:none}
+@media(max-width:640px){.pair>summary{grid-template-columns:24px 1fr 70px}.pair .mg{display:none}}
+.pair[open]>summary{border-bottom:1px solid var(--line)}
+.idx{color:var(--mute);font-variant-numeric:tabular-nums}
+.names{display:flex;flex-direction:column;gap:2px;min-width:0}
+.names span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s{color:var(--sell)}.b{color:var(--buy)}
+.tag{font-size:12px;color:var(--mute)}
+.meter{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:4px}
+.meter i{display:block;height:100%}
+.num{font-weight:600;font-variant-numeric:tabular-nums}
+.mg{text-align:right}
+.det{padding:14px;display:grid;gap:14px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.cols{grid-template-columns:1fr}}
+.box{border:1px solid var(--line);border-radius:5px;padding:10px 12px}
+.box.sell{border-left:4px solid var(--sell)}.box.buy{border-left:4px solid var(--buy)}
+.box h3{margin:0 0 6px;font-size:14px}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:14px}
+dt{color:var(--mute)}dd{margin:0;word-break:break-word}
+a{color:var(--buy)}
+ul{margin:4px 0 0 18px;padding:0;font-size:14px}
+.note{font-size:14px}
+.src{font-size:12px;color:var(--mute);word-break:break-all}
+.disc{font-size:12px;color:var(--mute);margin-top:18px}
+.topgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:6px}
+.tcard{background:var(--surf);border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.tcard p{margin:0}.tcard button{margin-top:auto}
+.notice{border:1px solid var(--mid);border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:14px}
+.verified{color:var(--ok)}.est{color:var(--mid)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Pirkėjų ir pardavėjų porų agentas</h1>
+  <p class="sub">Įveskite prekę. Agentas ieško interneto šaltiniuose Europos įmonių, kurios šią prekę parduoda, ir kitų, kurios ją perka, ir sudaro 10 porų su kaina, kiekiu, sąlygomis, sandorio realumu ir galima marža. Kiekvienos analizės metu agentas dar pateikia top 5 šiuo metu labiausiai prekiaujamas B2B prekes kaip rekomendaciją.</p>
+
+  <div id="pubnote" class="notice" hidden>Šiame rodinyje agentas neturi interneto paieškos. Poras sudaro Claude iš savo žinių: kainos ir kiekiai yra įvertinimai, o kontaktams nurodomos pareigybės ir oficialūs tinklalapiai. Tiesioginei paieškai su šaltinių nuorodomis naudokite tą pačią programą iš savo GitHub Pages su API raktu.</div>
+  <div class="panel">
+    <div class="grid">
+      <div><label for="prod">Prekė (X)</label><input id="prod" placeholder="pvz. beržo fanera 18 mm BB/CP, medienos granulės ENplus A1, OSB/3"></div>
+      <div><label for="qty">Min. kiekis (nebūtina)</label><input id="qty" placeholder="pvz. 1x40HC arba 500 t"></div>
+      <div><label for="geo">Šalys (nebūtina)</label><input id="geo" placeholder="pvz. DE, PL, UK, NL"></div>
+      <div><label for="cat">Sritis top 5 rekomendacijoms</label><select id="cat"><option>Visos prekės</option><option>Mediena ir medienos produktai</option><option>Žemės ūkis ir grūdai</option><option>Metalai ir statybinės medžiagos</option><option>Energetika, kuras ir chemija</option></select></div>
+    </div>
+    <div class="row2">
+      <div id="keybox"><label for="key">Anthropic API raktas (saugomas tik šioje naršyklėje)</label><input id="key" type="password" autocomplete="off" placeholder="sk-ant-..."></div>
+      <div id="proxybox"><label for="proxy">Proxy URL (nebūtina, pvz. Cloudflare Worker)</label><input id="proxy" placeholder="https://api.anthropic.com/v1/messages"></div>
+      <button id="go">Ieškoti porų</button>
+      <button id="top5btn" class="ghost" type="button">Tik top 5 rekomendacijos</button>
+    </div>
+  </div>
+
+  <div id="status" role="status" aria-live="polite"></div>
+
+  <div id="topwrap" hidden>
+    <div class="bar"><b id="topttl">Top 5 rekomenduojamos prekės</b></div>
+    <div id="top" class="topgrid"></div>
+  </div>
+
+  <div id="results" hidden>
+    <div class="bar">
+      <div id="summary" class="note"></div>
+      <div><label for="sort" style="display:inline;margin-right:6px">Rūšiuoti</label>
+        <select id="sort" style="width:auto"><option value="score">Realumas × marža</option><option value="real">Pagal realumą</option><option value="margin">Pagal maržą</option></select></div>
+    </div>
+    <div id="list"></div>
+  </div>
+
+  <p class="disc">Duomenys surinkti iš viešų šaltinių per interneto paiešką; kainos ir kiekiai dažnai yra įvertinimai ir pažymėti kaip „patvirtinta“ arba „įvertinta“. Prieš sandorį patikrinkite įmonę (registrai, VIES, KYC) ir gaukite galiojančią kainą raštu. Agentas neišgalvoja kontaktų: jei viešo kontakto nerasta, nurodomas tik tinklalapis arba pareigybė.</p>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const MODEL="claude-sonnet-4-6";
+const PUB=typeof window.claude!=="undefined"&&window.claude&&typeof window.claude.use==="function";
+if(PUB){$("keybox").hidden=true;$("proxybox").hidden=true;$("pubnote").hidden=false}
+let DATA=null;
+
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl=u=>/^https?:\/\//i.test(u||"")?u:null;
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k)||"";localStorage.setItem(k,v)}catch(e){return ""}}
+$("key").value=store("tm_key");$("proxy").value=store("tm_proxy");
+
+const SYSTEM=`Tu esi Europos B2B prekybos tarpininko (trejderio) tyrimų agentas. Naudodamas web_search įrankį, suraskite REALIAS Europos įmones (EEA, UK, Šveicarija, Balkanai, Turkija europinė dalis leistina tik jei vartotojas nurodė), kurios: (a) PARDUODA nurodytą prekę (gamintojai, sandėliai, didmenininkai su viešu pasiūlymu) ir (b) PERKA tą pačią prekę (importuotojai, perdirbėjai, didmenininkai, viešieji pirkimai, B2B paklausos skelbimai). Sudaryk lygiai 10 porų: kiekvienoje poroje vienas pardavėjas ir vienas pirkėjas, kurie tarpusavyje logiškai tinka (prekės specifikacija, kiekis, geografija, logistika).
+GRIEŽTOS TAISYKLĖS:
+- Nieko neišgalvok. Įmonių pavadinimus, kainas, kiekius, el. paštus, telefonus rašyk TIK jei radai šaltinyje. Jei nežinai, rašyk null. Kontaktai: pirmenybė viešiems įmonės pirkimų/pardavimų skyriaus el. paštams ar kontaktų puslapiui; asmens vardą rašyk tik jei jis viešai nurodytas kaip atsakingas už pirkimus/pardavimus.
+- Kiekvienam kainos/kiekio laukui nurodyk "confidence": "patvirtinta" (yra šaltinyje) arba "įvertinta" (tavo įvertinimas pagal rinkos lygį; tada paaiškink bazę).
+- realism 0-100: tikimybė, kad trejderis realiai uždarys sandorį (specifikacija, kiekis, kainų atotrūkis, kredito/atsiskaitymo rizika, sertifikatai pvz. FSC/EUTR/CE, muitai, logistika).
+- margin_pct: grynoji galima trejderio marža procentais po orientacinės logistikos ir finansavimo kaštų; margin_eur_per_unit su vienetu. Paaiškink skaičiavimą trumpai.
+- Atsakymas: TIK vienas JSON objektas, be markdown, be teksto prieš ar po. Lietuvių kalba.
+- Papildomai pateik "top5": 5 šiuo metu (nurodytą dieną) Europos B2B rinkoje labiausiai prekiaujamos fizinės prekės pagal paklausą, likvidumą ir tarpininko galimybes nurodytoje srityje (paprastai ne ta pati prekė, kurios porų prašoma). Kiekvienai: product (konkrečiai), why (1–2 sakiniai su naujausiais rinkos signalais), trend ("kyla"|"stabili"|"krinta" – kainos tendencija), price_hint (orientacinė kaina su vienetu arba null), opportunity (0–100: kiek patrauklu tarpininkui dabar), confidence.
+JSON schema:
+{"product":str,"market_note":str,"pairs":[{"seller":{"name":str,"country":str,"city":str|null,"website":str|null,"offer":{"qty":str|null,"price":str|null,"incoterm":str|null,"lead_time":str|null,"confidence":"patvirtinta"|"įvertinta","note":str|null}},"buyer":{"name":str,"country":str,"city":str|null,"website":str|null,"demand":{"qty":str|null,"price":str|null,"incoterm":str|null,"payment":str|null,"confidence":"patvirtinta"|"įvertinta","note":str|null}},"realism":int,"realism_reason":str,"margin_pct":number|null,"margin_eur_per_unit":str|null,"margin_note":str,"risks":[str],"seller_contact":{"who":str,"name":str|null,"email":str|null,"phone":str|null,"link":str|null},"buyer_contact":{"who":str,"name":str|null,"email":str|null,"phone":str|null,"link":str|null},"sources":[str]}],"top5":[{"product":str,"why":str,"trend":"kyla"|"stabili"|"krinta","price_hint":str|null,"opportunity":int,"confidence":"patvirtinta"|"įvertinta"}]}`;
+
+const SYSTEM_PUB=SYSTEM.replace("Naudodamas web_search įrankį, suraskite","Interneto paieškos NETURI. Remdamasis tik savo žiniomis, nurodyk").replace("\n- Atsakymas:","\n- Be paieškos: naudok tik tikras, tau gerai žinomas įmones; kainas ir kiekius pateik kaip \"įvertinta\" su rinkos lygio paaiškinimu; el. paštus ir telefonus rašyk null; vietoj jų nurodyk pareigybę ir oficialų tinklalapį; sources palik tuščią masyvą.\n- Atsakymas:");
+
+const TOP_SYSTEM=`Tu esi Europos B2B prekybos tarpininko (trejderio) rinkos analitikas. Naudodamas web_search įrankį (naujausios kainos, naujienos, paklausos signalai), nurodytą dieną ir pasirinktoje srityje išrink 5 Europos B2B rinkoje labiausiai prekiaujamas fizines prekes pagal paklausą, likvidumą ir tarpininko galimybes. Kiekvienai: product (konkrečiai, su specifikacija), why (1–2 sakiniai su naujausiais rinkos signalais), trend ("kyla"|"stabili"|"krinta" – kainos tendencija), price_hint (orientacinė kaina su vienetu arba null), opportunity (0–100: kiek patrauklu tarpininkui dabar), confidence ("patvirtinta" jei radai šaltinyje, kitaip "įvertinta"). Nieko neišgalvok; jei nežinai, rašyk null. Atsakymas: TIK vienas JSON objektas {"top5":[...]}, be markdown, lietuvių kalba.`;
+const TOP_PUB=TOP_SYSTEM.replace("Naudodamas web_search įrankį (naujausios kainos, naujienos, paklausos signalai)","Interneto paieškos NETURI; remkis tik savo žiniomis").replace('kitaip "įvertinta"','visada "įvertinta"');
+let CFG={sys:SYSTEM,uses:14,tok:16000};
+async function callApi(messages,endpoint,key,tries){
+  tries=tries||0;
+  let r;
+  try{
+    r=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:MODEL,max_tokens:CFG.tok,stream:true,system:CFG.sys,messages,tools:[{type:"web_search_20250305",name:"web_search",max_uses:CFG.uses}]})});
+  }catch(e){
+    if(tries<1){await new Promise(x=>setTimeout(x,2500));return callApi(messages,endpoint,key,tries+1)}
+    throw e;
+  }
+  if(!r.ok){const t=await r.text();let m;try{m=JSON.parse(t).error.message}catch(e){m=t.slice(0,200)}throw new Error(m||("HTTP "+r.status))}
+  const rd=r.body.getReader(),dec=new TextDecoder();let buf="",content=[],stop=null;
+  const handle=ev=>{
+    if(ev.type==="content_block_start"){const c=JSON.parse(JSON.stringify(ev.content_block));if(c.type==="text")c.text=c.text||"";if(c.type==="server_tool_use"||c.type==="tool_use")c._json="";content[ev.index]=c}
+    else if(ev.type==="content_block_delta"){const c=content[ev.index],d=ev.delta;if(!c)return;if(d.type==="text_delta")c.text+=d.text;else if(d.type==="input_json_delta")c._json+=d.partial_json}
+    else if(ev.type==="content_block_stop"){const c=content[ev.index];if(c&&c._json!==undefined){try{c.input=c._json?JSON.parse(c._json):{}}catch(e){c.input={}}delete c._json}}
+    else if(ev.type==="message_delta"){stop=ev.delta&&ev.delta.stop_reason}
+    else if(ev.type==="error"){throw new Error((ev.error&&ev.error.message)||"Srauto klaida")}
+  };
+  for(;;){
+    const {done,value}=await rd.read();if(done)break;
+    buf+=dec.decode(value,{stream:true});let i;
+    while((i=buf.indexOf("\n"))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+1);
+      if(line.startsWith("data:")){const d=line.slice(5).trim();if(d&&d!=="[DONE]")handle(JSON.parse(d))}}
+  }
+  return {stop_reason:stop,content:content.filter(Boolean)};
+}
+function extractJson(content){
+  const txt=content.filter(b=>b.type==="text").map(b=>b.text).join("\n").replace(/```json|```/g,"");
+  const a=txt.indexOf("{"),b=txt.lastIndexOf("}");
+  if(a<0||b<=a)throw new Error("Agentas negrąžino duomenų. Bandykite dar kartą arba tiksliau apibūdinkite prekę.");
+  return JSON.parse(txt.slice(a,b+1));
+}
+
+async function run(mode){
+  mode=mode==="top"?"top":"pairs";
+  const prod=$("prod").value.trim(),key=$("key").value.trim();
+  const endpoint=$("proxy").value.trim()||"https://api.anthropic.com/v1/messages";
+  const st=$("status");st.className="";
+  if(mode==="pairs"&&!prod){st.textContent="Įveskite prekę.";st.className="err";return}
+  if(!PUB&&!key){st.textContent="Įveskite API raktą.";st.className="err";return}
+  if(!PUB){store("tm_key",key);store("tm_proxy",$("proxy").value.trim())}
+  $("go").disabled=true;$("top5btn").disabled=true;if(mode==="pairs")$("results").hidden=true;
+  let wl=null;try{if(navigator.wakeLock)wl=await navigator.wakeLock.request("screen")}catch(e){}
+  const t0=Date.now();
+  const tick=setInterval(()=>{st.textContent=(mode==="top"?"Analizuojami rinkos signalai… ":PUB?"Claude sudaro poras… ":"Agentas ieško šaltinių ir sudaro poras… ")+Math.round((Date.now()-t0)/1000)+" s (paprastai "+(mode==="top"?"0,5–1":PUB?"0,5–2":"1–3")+" min.)"},1000);
+  const date=new Date().toISOString().slice(0,10),cat=$("cat").value;
+  const q=mode==="top"?`Data: ${date}\nSritis: ${cat}\nPateik top 5 rekomendacijas.`
+    :`Prekė X: ${prod}\nMin. kiekis: ${$("qty").value.trim()||"nenurodyta"}\nŠalys: ${$("geo").value.trim()||"visa Europa"}\nData: ${date}\nSritis top5 rekomendacijoms: ${cat}\nSudaryk 10 pardavėjų–pirkėjų porų ir top5.`;
+  try{
+    CFG=mode==="top"?{sys:TOP_SYSTEM,uses:6,tok:4000}:{sys:SYSTEM,uses:14,tok:16000};
+    let J;
+    if(PUB){
+      const sample=await window.claude.use("sample");
+      if(!sample)throw new Error("Claude šiame rodinyje nepasiekiamas arba nesuteiktas leidimas.");
+      const r=await sample((mode==="top"?TOP_PUB:SYSTEM_PUB)+"\n\n"+q,{modelTier:"complex",cache:false});
+      J=extractJson([{type:"text",text:r.text}]);
+    }else{
+      let messages=[{role:"user",content:q}],j,guard=0;
+      do{
+        j=await callApi(messages,endpoint,key);
+        if(j.stop_reason==="pause_turn"){messages=[messages[0],{role:"assistant",content:j.content}]}
+        guard++;
+      }while(j.stop_reason==="pause_turn"&&guard<4);
+      J=extractJson(j.content);
+    }
+    if(mode==="top"){
+      if(!Array.isArray(J.top5)||!J.top5.length)throw new Error("Rekomendacijų negauta. Pabandykite dar kartą.");
+      TOP=J.top5;TOPDATE=new Date();renderTop();
+    }else{
+      if(!Array.isArray(J.pairs)||!J.pairs.length)throw new Error("Porų nerasta. Pabandykite kitą prekės apibūdinimą.");
+      DATA=J;
+      if(Array.isArray(J.top5)&&J.top5.length){TOP=J.top5;TOPDATE=new Date();renderTop()}
+      render();
+    }
+    st.textContent="";
+  }catch(e){st.textContent="Klaida: "+e.message+(/Failed to fetch|NetworkError|Load failed/i.test(e.message)?". Ryšys su API nutrūko. Patikrinkite, ar nenaudojate reklamų blokatoriaus, VPN ar Private DNS (jie gali blokuoti api.anthropic.com), nelaikykite ekrano užgesusio paieškos metu ir pabandykite dar kartą. Jei naudojate proxy URL, patikrinkite jį arba palikite tuščią.":"");st.className="err"}
+  finally{clearInterval(tick);try{if(wl)wl.release()}catch(e){}$("go").disabled=false;$("top5btn").disabled=false}
+}
+
+let TOP=null,TOPDATE=null;
+const trendColor=t=>t==="kyla"?"var(--ok)":t==="krinta"?"var(--bad)":"var(--mute)";
+function renderTop(){
+  $("topttl").textContent="Top 5 rekomenduojamos prekės · "+TOPDATE.toLocaleString("lt-LT",{dateStyle:"medium",timeStyle:"short"});
+  $("top").innerHTML=TOP.slice(0,5).map((t,i)=>{const o=Math.max(0,Math.min(100,+t.opportunity||0));
+    return `<div class="tcard"><div><span class="idx">${i+1}</span> <b>${esc(t.product)}</b></div>
+    <div class="tag" style="color:${trendColor(t.trend)}">Kaina: ${esc(t.trend||"–")}${t.price_hint?" · "+esc(t.price_hint):""}</div>
+    <p class="note">${esc(t.why||"")}</p>
+    <div><span class="tag">Galimybė ${o}/100 · ${conf(t.confidence)}</span><div class="meter"><i style="width:${o}%;background:${color(o)}"></i></div></div>
+    <button class="ghost" type="button" data-i="${i}">Analizuoti poras</button></div>`}).join("");
+  $("topwrap").hidden=false;
+}
+
+const score=p=>(p.realism||0)*Math.max(p.margin_pct||0,0);
+function color(n){return n>=65?"var(--ok)":n>=40?"var(--mid)":"var(--bad)"}
+function conf(c){return c==="patvirtinta"?'<span class="verified">patvirtinta</span>':'<span class="est">įvertinta</span>'}
+function link(u,t){const s=safeUrl(u);return s?`<a href="${esc(s)}" target="_blank" rel="noopener noreferrer">${esc(t||s)}</a>`:"–"}
+function mail(e){return e?`<a href="mailto:${esc(e)}">${esc(e)}</a>`:"–"}
+function contact(c){c=c||{};return `<dl><dt>Kam rašyti</dt><dd>${esc(c.who||"–")}${c.name?" – "+esc(c.name):""}</dd><dt>El. paštas</dt><dd>${mail(c.email)}</dd><dt>Telefonas</dt><dd>${esc(c.phone||"–")}</dd><dt>Nuoroda</dt><dd>${link(c.link)}</dd></dl>`}
+function kv(o,rows){return "<dl>"+rows.map(([k,v])=>`<dt>${k}</dt><dd>${v==null||v===""?"–":esc(v)}</dd>`).join("")+"</dl>"}
+
+function render(){
+  const mode=$("sort").value;
+  const ps=[...DATA.pairs].sort((a,b)=>mode==="real"?(b.realism||0)-(a.realism||0):mode==="margin"?(b.margin_pct||0)-(a.margin_pct||0):score(b)-score(a)).slice(0,10);
+  $("summary").innerHTML=`<b>${esc(DATA.product||$("prod").value)}</b>. ${esc(DATA.market_note||"")}`;
+  $("list").innerHTML=ps.map((p,i)=>{
+    const s=p.seller||{},b=p.buyer||{},o=s.offer||{},d=b.demand||{},r=Math.max(0,Math.min(100,p.realism||0));
+    const sc=p.seller_contact||{},bc=p.buyer_contact||{};
+    return `<details class="pair"><summary>
+      <span class="idx">${i+1}</span>
+      <span class="names"><span class="s">Parduoda: <b>${esc(s.name)}</b> <span class="tag">${esc(s.country||"")}</span></span><span class="b">Perka: <b>${esc(b.name)}</b> <span class="tag">${esc(b.country||"")}</span></span></span>
+      <span><span class="tag">Realumas</span> <span class="num" style="color:${color(r)}">${r}</span><span class="meter"><i style="width:${r}%;background:${color(r)}"></i></span></span>
+      <span class="mg"><span class="tag">Marža</span><br><span class="num">${p.margin_pct==null?"–":(+p.margin_pct).toFixed(1)+" %"}</span></span></summary>
+      <div class="det">
+        <div class="cols">
+          <div class="box sell"><h3 class="s">Pardavėjas: ${esc(s.name)}</h3>
+            ${kv(0,[["Vieta",[s.city,s.country].filter(Boolean).join(", ")],["Kiekis",o.qty],["Kaina",o.price],["Incoterms",o.incoterm],["Pristatymas",o.lead_time]])}
+            <p class="tag">Duomenys: ${conf(o.confidence)}${o.note?" – "+esc(o.note):""}</p>
+            <p class="tag">Tinklalapis: ${link(s.website)}</p>
+            <h3>Rašyti dėl pirkimo (iš jų)</h3>${contact(sc)}</div>
+          <div class="box buy"><h3 class="b">Pirkėjas: ${esc(b.name)}</h3>
+            ${kv(0,[["Vieta",[b.city,b.country].filter(Boolean).join(", ")],["Kiekis",d.qty],["Kaina",d.price],["Incoterms",d.incoterm],["Apmokėjimas",d.payment]])}
+            <p class="tag">Duomenys: ${conf(d.confidence)}${d.note?" – "+esc(d.note):""}</p>
+            <p class="tag">Tinklalapis: ${link(b.website)}</p>
+            <h3>Rašyti dėl pardavimo (jiems)</h3>${contact(bc)}</div>
+        </div>
+        <div class="box"><h3>Sandorio vertinimas</h3>
+          <p class="note"><b>Realumas ${r}/100.</b> ${esc(p.realism_reason||"")}</p>
+          <p class="note"><b>Galima marža:</b> ${p.margin_pct==null?"–":(+p.margin_pct).toFixed(1)+" %"}${p.margin_eur_per_unit?" ("+esc(p.margin_eur_per_unit)+")":""}. ${esc(p.margin_note||"")}</p>
+          ${(p.risks&&p.risks.length)?"<b class='note'>Rizikos</b><ul>"+p.risks.map(x=>`<li>${esc(x)}</li>`).join("")+"</ul>":""}
+        </div>
+        ${(p.sources&&p.sources.length)?`<div class="src">Šaltiniai: ${p.sources.map(u=>link(u)).join(" · ")}</div>`:""}
+      </div></details>`}).join("");
+  $("results").hidden=false;
+}
+$("go").addEventListener("click",()=>run("pairs"));
+$("top5btn").addEventListener("click",()=>run("top"));
+$("top").addEventListener("click",e=>{const b=e.target.closest("button[data-i]");if(!b||!TOP)return;const t=TOP[+b.dataset.i];if(!t)return;$("prod").value=t.product;window.scrollTo({top:0,behavior:"smooth"});run("pairs")});
+$("prod").addEventListener("keydown",e=>{if(e.key==="Enter")run("pairs")});
+$("sort").addEventListener("change",()=>DATA&&render());
+</script>
+</body>
+</html>
